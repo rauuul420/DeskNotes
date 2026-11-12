@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DeskNotes.App/DeskNotes.App.csproj" />
+    <Project Path="src/DeskNotes.Core/DeskNotes.Core.csproj" />
+    <Project Path="src/DeskNotes.Infrastructure/DeskNotes.Infrastructure.csproj" />
+  </Folder>
+</Solution>
