@@ -19,6 +19,7 @@ public sealed class AppSettingsServiceTests
 
             Assert.NotNull(settings);
             Assert.Empty(settings.OpenNotes);
+            Assert.Empty(settings.SavedNotes);
         }
         finally
         {
@@ -105,6 +106,8 @@ public sealed class AppSettingsServiceTests
 
             Assert.NotNull(settings.OpenNotes);
             Assert.Empty(settings.OpenNotes);
+            Assert.NotNull(settings.SavedNotes);
+            Assert.Empty(settings.SavedNotes);
         }
         finally
         {
@@ -112,6 +115,42 @@ public sealed class AppSettingsServiceTests
         }
     }
 
+    [Fact]
+    public async Task SaveAsync_AndLoadAsync_PreserveSavedNotesIndependentlyFromOpenWindows()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var service = new JsonAppSettingsService(Path.Combine(directory, "settings.json"));
+            var settings = new AppSettings
+            {
+                OpenNotes = [],
+                SavedNotes =
+                [
+                    new SavedNote
+                    {
+                        FilePath = @\\"C:\\\\Users\\\\User\\\\Documents\\\\ideas.md\\\\",
+                        Title = "Ideas",
+                        AddedAt = DateTimeOffset.Parse("2026-11-13T10:00:00Z")
+                    }
+                ]
+            };
+
+            await service.SaveAsync(settings);
+            var loaded = await service.LoadAsync();
+
+            Assert.Empty(loaded.OpenNotes);
+            var savedNote = Assert.Single(loaded.SavedNotes);
+            Assert.Equal(settings.SavedNotes[0].FilePath, savedNote.FilePath);
+            Assert.Equal("Ideas", savedNote.Title);
+            Assert.Equal(settings.SavedNotes[0].AddedAt, savedNote.AddedAt);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
 
     [Fact]
     public async Task SaveAsync_SerializesConcurrentWritesWithoutCorruptingJson()
