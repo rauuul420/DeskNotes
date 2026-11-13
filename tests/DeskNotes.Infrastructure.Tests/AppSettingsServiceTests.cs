@@ -91,6 +91,28 @@ public sealed class AppSettingsServiceTests
     }
 
     [Fact]
+    public async Task LoadAsync_NormalizesNullOpenNotesCollection()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var path = Path.Combine(directory, "settings.json");
+            await File.WriteAllTextAsync(path, "{ \"openNotes\": null }");
+            var service = new JsonAppSettingsService(path);
+
+            var settings = await service.LoadAsync();
+
+            Assert.NotNull(settings.OpenNotes);
+            Assert.Empty(settings.OpenNotes);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task LoadAsync_ThrowsWhenSettingsFileContainsInvalidJson()
     {
         var directory = CreateTemporaryDirectory();
