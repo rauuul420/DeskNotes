@@ -25,8 +25,17 @@ Log location:
 
 \`%LOCALAPPDATA%\\DeskNotes\\DesktopLayerPrototype\\diagnostics.log\`
 
-The probe requires the modern Progman hierarchy and refuses to attach if it cannot validate the desktop view or match the DPI context. It does not attempt to repair or restart Explorer.
+The probe requires the raised-desktop Progman hierarchy and refuses to attach if it cannot validate the desktop view, a direct Progman WorkerW child, or the DPI context. It places the surface behind SHELLDLL_DefView and moves WorkerW to the bottom of Progman's child Z-order.
+
+Two alpha paths are tested in separate process runs:
+
+- Default: UpdateLayeredWindow with per-pixel alpha.
+- `--constant-alpha`: SetLayeredWindowAttributes(alpha=255), with ordinary GDI painting, matching the alpha strategy documented in Lively's DirectX path.
+
+The executable embeds a compatibility manifest declaring Windows 8, 8.1 and Windows 10+ support. Microsoft requires Windows 8+ manifest compatibility for layered child windows. This prototype targets Windows 11 25H2; the manifest does not imply that earlier Windows versions have been tested.
+
+It does not attempt to repair or restart Explorer.
 
 ## Scope
 
-This is Prototype 1 only. It validates a native layered child surface and Z-order. It does not validate WPF rendering, keyboard focus, multiple widgets, mixed DPI, or Explorer restart recovery.
+This is Prototype 1 only. It validates a native layered child surface, both alpha paths, and the Progman / SHELLDLL_DefView / WorkerW Z-order. It does not validate WPF rendering, keyboard focus, multiple widgets, mixed DPI, or Explorer restart recovery.
