@@ -56,6 +56,25 @@ El servicio experimental cambia estilos, reparenta el HWND existente a Progman y
 - \`DesktopLayerStatePolicy\` tiene pruebas puras, pero no demuestra comportamiento nativo y no está integrada en un controlador efectivo de foco/recuperación.
 - El servicio no demuestra composición, input, foco, múltiples monitores ni reinicio de Explorer.
 
+## 3.4 Hallazgos de Lively y estrategia raised desktop
+
+Se inspeccionó Lively en el commit [25a0a5f4ed1988ff42117d3a17feb321062237fe](https://github.com/lively-community/lively/blob/25a0a5f4ed1988ff42117d3a17feb321062237fe/src/Lively/Lively/Core/WinDesktopCore.cs). Su implementación distingue dos topologías:
+
+- **Legacy:** aloja el wallpaper bajo un WorkerW seleccionado mediante la enumeración del shell.
+- **Raised desktop / layered shell view:** detecta WS_EX_NOREDIRECTIONBITMAP en Progman, busca SHELLDLL_DefView y un WorkerW hijo directo de Progman. Inserta su ventana layered como hijo de Progman, inmediatamente detrás de SHELLDLL_DefView, y fuerza WorkerW al fondo del orden Z.
+
+Lively aplica WS_CHILD y WS_EX_LAYERED antes del attach. Para su renderer DirectX utiliza SetLayeredWindowAttributes(alpha=255); esto es distinto de UpdateLayeredWindow con alpha per-pixel. DeskNotes compara ambos caminos en HWNDs recreados, no alterna los mecanismos sobre la misma ventana.
+
+La detección mediante WS_EX_NOREDIRECTIONBITMAP es más sólida que inferir la topología únicamente por la versión de Windows. El mensaje 0x052C y la jerarquía concreta siguen siendo detalles internos del shell, no contratos públicos estables.
+
+El requisito Windows 10 1903+ publicado por Lively corresponde a su distribución/instalador y dependencias; no demuestra que SetParent, WorkerW o layered child windows aparecieran en esa versión. Microsoft documenta layered child windows desde Windows 8, con la condición de declarar compatibilidad con Windows 8+ en el manifiesto. Esto tampoco garantiza por sí solo la compatibilidad de WPF.
+
+Fuentes:
+- [Lively — WinDesktopCore.cs, commit inspeccionado](https://github.com/lively-community/lively/blob/25a0a5f4ed1988ff42117d3a17feb321062237fe/src/Lively/Lively/Core/WinDesktopCore.cs)
+- [Lively — DesktopUtil.cs](https://github.com/lively-community/lively/blob/25a0a5f4ed1988ff42117d3a17feb321062237fe/src/Lively/Lively.Common/Helpers/Shell/DesktopUtil.cs)
+- [Lively — WindowUtil.cs](https://github.com/lively-community/lively/blob/25a0a5f4ed1988ff42117d3a17feb321062237fe/src/Lively/Lively.Common/Helpers/WindowUtil.cs)
+- [Lively — Getting Started / requisitos de Windows](https://github.com/lively-community/lively/wiki/Getting-Started)
+
 ## 4. Comparación de alternativas
 
 | Alternativa | Viabilidad inicial | Riesgo / limitación principal |
@@ -78,8 +97,9 @@ Este repositorio añade \`prototypes/DesktopLayer.NativeProbe\`, una aplicación
 - consulta el DPI awareness context de Progman y el hilo del proceso;
 - intenta igualar el contexto DPI antes de crear ventanas;
 - crea una ventana child \`WS_EX_LAYERED\` directamente bajo Progman;
-- inserta la superficie inmediatamente detrás de SHELLDLL_DefView, sin reordenar WorkerW;
-- dibuja un panel semitransparente mediante \`UpdateLayeredWindow\`;
+- inserta la superficie inmediatamente detrás de SHELLDLL_DefView;
+- mantiene el WorkerW hijo directo de Progman al fondo del orden Z, siguiendo el patrón raised desktop de Lively;
+- permite ejecutar dos variantes independientes: \`UpdateLayeredWindow(ULW_ALPHA)\` con alpha per-pixel y \`SetLayeredWindowAttributes(alpha=255)\` con pintura GDI normal;
 - registra HWNDs, parent, estilos, rectángulos, Z-order, arquitectura y errores Win32.
 
 La prueba no cambia archivos de DeskNotes ni la configuración del usuario.
@@ -99,7 +119,13 @@ La prueba no cambia archivos de DeskNotes ni la configuración del usuario.
 - el panel queda detrás del wallpaper o por delante de los iconos;
 - el panel es invisible.
 
-No se considera probado hasta ejecutar en una sesión interactiva de Windows 11 25H2.
+Ejecuciones:
+- Modo per-pixel (predeterminado): `dotnet run --project prototypes/DesktopLayer.NativeProbe/DesktopLayer.NativeProbe.csproj -c Release`
+- Modo alpha constante Lively: `dotnet run --project prototypes/DesktopLayer.NativeProbe/DesktopLayer.NativeProbe.csproj -c Release -- --constant-alpha`
+
+En cada ejecución se debe verificar que el widget es hijo de Progman, que queda inmediatamente detrás de SHELLDLL_DefView y que GetWindow(WorkerW, GW_HWNDNEXT) devuelve NULL (WorkerW al final del orden Z).
+
+No se considera probado hasta ejecutar ambas variantes en una sesión interactiva de Windows 11 25H2.
 
 ### Prototipo 2 — WPF
 
@@ -151,7 +177,7 @@ Ivy usa una superficie WinForms/WebView2 y \`WS_EX_TRANSPARENT\`; su código no 
 - Auditoría de main y PR #13: completada inicialmente.
 - Investigación documental Win32 / WPF: completada inicialmente.
 - Comparación de alternativas: completada inicialmente.
-- Prototipo nativo: preparado; ejecución interactiva pendiente.
+- Prototipo nativo: variantes A/B implementadas; compilación CI y ejecución interactiva pendientes.
 - Prototipo WPF: bloqueado hasta el resultado del prototipo 1.
 - Integración DeskNotes: no iniciada.
 - Windows 10: fuera del primer objetivo.
