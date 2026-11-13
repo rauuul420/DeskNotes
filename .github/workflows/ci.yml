@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feature/**"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.404
+
+      - name: Restore dependencies
+        run: dotnet restore DeskNotes.slnx
+
+      - name: Build solution
+        run: dotnet build DeskNotes.slnx --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test DeskNotes.slnx --configuration Release --no-build --verbosity normal
