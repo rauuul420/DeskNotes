@@ -49,7 +49,7 @@ VIAddVersionKey "FileVersion" "${APP_VERSION}"
 
 Function .onInit
   SetShellVarContext current
-  nsExec::ExecToStack 'dotnet --list-runtimes'
+  nsExec::ExecToStack '"$PROGRAMFILES64\\dotnet\\dotnet.exe" --list-runtimes'
   Pop $0
   Pop $1
   ${StrStr} $2 $1 "Microsoft.WindowsDesktop.App 10."
