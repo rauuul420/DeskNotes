@@ -15,4 +15,9 @@ public sealed class AppSettings
     /// Closing a note window does not remove its library entry.
     /// </summary>
     public List<SavedNote> SavedNotes { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the desktop widgets that should be restored on the next launch.
+    /// </summary>
+    public List<NoteWidgetState> NoteWidgets { get; set; } = [];
 }
