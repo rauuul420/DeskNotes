@@ -7,8 +7,8 @@ using DeskNotes.Core.Services;
 namespace DeskNotes.App;
 
 /// <summary>
-/// Coordinates independent WPF popup HWNDs in the desktop Z-order band.
-/// No widget is reparented to Explorer: each one remains a top-level WS_POPUP.
+/// Coordinates independent top-level WPF HWNDs in the desktop Z-order band.
+/// No widget is reparented to Explorer or converted into a child window.
 /// Explorer's desktop hierarchy is private implementation detail, so failures
 /// leave widgets as ordinary windows instead of corrupting their HWND styles.
 /// </summary>
@@ -25,7 +25,6 @@ internal sealed class DesktopLayerService : IDisposable
     private const uint PositionFlags = SwpNoSize | SwpNoMove | SwpNoActivate | SwpNoOwnerZOrder | SwpNoSendChanging;
     private const int GwlStyle = -16;
     private const int GwlExStyle = -20;
-    private const long WsPopup = unchecked((long)0x80000000);
     private const long WsChild = 0x40000000;
     private const long WsExToolWindow = 0x00000080;
     private const long WsExNoRedirectionBitmap = 0x00200000;
@@ -83,9 +82,12 @@ internal sealed class DesktopLayerService : IDisposable
         {
             EnsureHelperWindow();
             var originalStyle = GetWindowLongPtr(hwnd, GwlStyle).ToInt64();
-            if ((originalStyle & WsChild) != 0 || (originalStyle & WsPopup) == 0)
+            // WPF top-level windows are not required to carry WS_POPUP. The invariant
+            // needed by this Z-order strategy is that the HWND is not a child and is
+            // its own GA_ROOT. Checking WS_POPUP rejects valid borderless WPF windows.
+            if ((originalStyle & WsChild) != 0 || GetAncestor(hwnd, GaRoot) != hwnd)
             {
-                error = "El widget no conserva el estilo de ventana superior WS_POPUP.";
+                error = "El identificador Win32 del widget no corresponde a una ventana independiente de nivel superior.";
                 return false;
             }
 
