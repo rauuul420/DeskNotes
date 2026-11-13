@@ -27,6 +27,8 @@ public sealed class NoteFileServiceTests
             Assert.NotEqual(Guid.Empty, note.Id);
             Assert.NotEqual(default, note.CreatedAt);
             Assert.NotEqual(default, note.UpdatedAt);
+            Assert.NotNull(note.SourceLastWriteTimeUtc);
+            Assert.NotNull(note.SourceLength);
         }
         finally
         {
@@ -53,6 +55,36 @@ public sealed class NoteFileServiceTests
                          bytes[0] == 0xEF &&
                          bytes[1] == 0xBB &&
                          bytes[2] == 0xBF);
+            Assert.NotNull(note.SourceLastWriteTimeUtc);
+            Assert.Equal(bytes.Length, note.SourceLength);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SaveAsync_DoesNotOverwriteFileChangedOutsideDeskNotes()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var path = Path.Combine(directory, "note.txt");
+            await File.WriteAllTextAsync(path, "Contenido original");
+
+            var note = await _service.OpenAsync(path);
+            note.Content = "Cambios realizados en DeskNotes";
+
+            await File.WriteAllTextAsync(path, "Contenido modificado desde otra aplicación");
+
+            await Assert.ThrowsAsync<IOException>(
+                () => _service.SaveAsync(note, path));
+
+            Assert.Equal(
+                "Contenido modificado desde otra aplicación",
+                await File.ReadAllTextAsync(path));
         }
         finally
         {
