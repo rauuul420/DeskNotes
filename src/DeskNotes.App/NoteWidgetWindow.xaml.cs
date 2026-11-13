@@ -13,6 +13,8 @@ namespace DeskNotes.App;
 public partial class NoteWidgetWindow : Window
 {
     private readonly string _filePath;
+    private bool _desktopLayerActive;
+    private bool _topmostBeforeDesktopLayer;
 
     public event EventHandler? PlacementChanged;
 
@@ -62,6 +64,34 @@ public partial class NoteWidgetWindow : Window
         WidgetContentText.Text = content ?? string.Empty;
     }
 
+    /// <summary>
+    /// Updates the widget UI for desktop-layer mode. The pin action is unavailable in
+    /// that mode because topmost windows cannot remain behind the desktop icon surface.
+    /// </summary>
+    public void SetDesktopLayerActive(bool active)
+    {
+        if (_desktopLayerActive == active)
+        {
+            return;
+        }
+
+        if (active)
+        {
+            _topmostBeforeDesktopLayer = Topmost;
+            Topmost = false;
+            PinButton.IsEnabled = false;
+            PinButton.ToolTip = "No disponible mientras el widget está integrado en el escritorio";
+        }
+        else
+        {
+            PinButton.IsEnabled = true;
+            Topmost = _topmostBeforeDesktopLayer;
+            UpdatePinButton();
+        }
+
+        _desktopLayerActive = active;
+    }
+
     public NoteWidgetState? CaptureState()
     {
         var bounds = WindowState == WindowState.Normal
@@ -80,7 +110,7 @@ public partial class NoteWidgetWindow : Window
             Top = bounds.Top,
             Width = bounds.Width,
             Height = bounds.Height,
-            IsTopmost = Topmost
+            IsTopmost = _desktopLayerActive ? _topmostBeforeDesktopLayer : Topmost
         };
     }
 
