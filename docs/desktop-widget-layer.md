@@ -4,7 +4,7 @@ DeskNotes optionally positions note widgets in the desktop Z-order band between 
 
 ## Window architecture
 
-- Each widget remains an independent top-level WPF window with its original `WS_POPUP` style.
+- Each widget remains an independent top-level WPF window with its original native window style. The implementation verifies that its HWND is not `WS_CHILD` and is its own `GA_ROOT`; it does not assume that WPF must use `WS_POPUP`.
 - Widgets are never reparented to `Progman` or `WorkerW`; the service does not call `SetParent` and does not add `WS_CHILD`.
 - A hidden, disabled helper popup provides the reference point for Z-order placement, following the strategy used by Rainmeter.
 - Automatic Z-order changes use `SetWindowPos` with `SWP_NOACTIVATE`; they must not steal keyboard focus.
