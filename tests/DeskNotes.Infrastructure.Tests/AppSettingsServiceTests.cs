@@ -112,6 +112,45 @@ public sealed class AppSettingsServiceTests
         }
     }
 
+
+    [Fact]
+    public async Task SaveAsync_SerializesConcurrentWritesWithoutCorruptingJson()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var path = Path.Combine(directory, "settings.json");
+            var service = new JsonAppSettingsService(path);
+
+            var saves = Enumerable.Range(0, 8).Select(index =>
+                service.SaveAsync(new AppSettings
+                {
+                    OpenNotes =
+                    [
+                        new NoteWindowState
+                        {
+                            FilePath = $@"C:\Notes\note-{index}.md",
+                            Left = index * 10,
+                            Top = index * 5
+                        }
+                    ]
+                }));
+
+            await Task.WhenAll(saves);
+
+            var loaded = await service.LoadAsync();
+
+            Assert.Single(loaded.OpenNotes);
+            Assert.EndsWith(".md", loaded.OpenNotes[0].FilePath);
+            Assert.Empty(Directory.GetFiles(directory, "*.tmp"));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task LoadAsync_ThrowsWhenSettingsFileContainsInvalidJson()
     {
