@@ -42,10 +42,11 @@ public partial class MainWindow : Window
         {
             var settings = await _settingsService.LoadAsync();
 
+            var restoredPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var savedWindow in settings.OpenNotes)
             {
-                if (string.IsNullOrWhiteSpace(savedWindow.FilePath) ||
-                    !File.Exists(savedWindow.FilePath))
+                if (string.IsNullOrWhiteSpace(savedWindow.FilePath))
                 {
                     continue;
                 }
@@ -53,6 +54,12 @@ public partial class MainWindow : Window
                 try
                 {
                     var fullPath = Path.GetFullPath(savedWindow.FilePath);
+
+                    if (!restoredPaths.Add(fullPath) || !File.Exists(fullPath))
+                    {
+                        continue;
+                    }
+
                     var note = await _noteFileService.OpenAsync(fullPath);
                     OpenNoteWindow(note, fullPath, savedWindow);
                 }
