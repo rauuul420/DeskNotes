@@ -2,66 +2,47 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
-using DeskNotes.Core.Services;
 
 namespace DeskNotes.App;
 
 /// <summary>
-/// Coordinates independent top-level WPF HWNDs in the desktop Z-order band.
-/// No widget is reparented to Explorer or converted into a child window.
-/// Explorer's desktop hierarchy is private implementation detail, so failures
-/// leave widgets as ordinary windows instead of corrupting their HWND styles.
+/// Hosts WPF widget HWNDs as child windows of the modern Windows desktop root.
+/// Windows 11 24H2/25H2 uses the Progman composition path: widgets are siblings
+/// of SHELLDLL_DefView and are ordered above the wallpaper WorkerW.
+/// This relies on undocumented Explorer implementation details.
 /// </summary>
 internal sealed class DesktopLayerService : IDisposable
 {
-    private const uint DesktopWorkerMessage = 0x052C;
-    private const uint SmtoNormal = 0x0000;
-    private const uint SmtoAbortIfHung = 0x0002;
+    private const int MinimumModernDesktopBuild = 26100;
+    private const int GwlStyle = -16;
+    private const int GwlExStyle = -20;
+    private const long WsChild = 0x40000000;
+    private const long WsPopup = unchecked((long)0x80000000);
     private const uint SwpNoSize = 0x0001;
     private const uint SwpNoMove = 0x0002;
     private const uint SwpNoActivate = 0x0010;
-    private const uint SwpNoOwnerZOrder = 0x0200;
-    private const uint SwpNoSendChanging = 0x0400;
-    private const uint PositionFlags = SwpNoSize | SwpNoMove | SwpNoActivate | SwpNoOwnerZOrder | SwpNoSendChanging;
-    private const int GwlStyle = -16;
-    private const int GwlExStyle = -20;
-    private const long WsPopup = unchecked((long)0x80000000);
-    private const long WsChild = 0x40000000;
-    private const long WsExToolWindow = 0x00000080;
-    private const long WsExNoRedirectionBitmap = 0x00200000;
+    private const uint SwpFrameChanged = 0x0020;
+    private const uint PositionFlags = SwpNoSize | SwpNoMove | SwpNoActivate | SwpFrameChanged;
+    private const uint SmtoAbortIfHung = 0x0002;
     private const uint GaParent = 1;
-    private const uint GaRoot = 2;
-    private const uint EventSystemForeground = 0x0003;
-    private const uint WineventOutOfContext = 0x0000;
-    private const uint WineventSkipOwnProcess = 0x0002;
-    private static readonly IntPtr HwndBottom = new(1);
-    private static readonly IntPtr HwndTopmost = new(-1);
-    private static readonly IntPtr HwndNotTopmost = new(-2);
+    private const uint DesktopWorkerMessage = 0x052C;
+    private const nuint ModernWorkerWParam = 0x000D;
+    private const nint ModernWorkerLParam = 0x0001;
 
     private readonly Dictionary<IntPtr, Attachment> _widgets = [];
-    private readonly Dispatcher _dispatcher;
     private readonly DispatcherTimer _shellPoll;
-    private readonly WinEventDelegate _winEventCallback;
-    private IntPtr _helperWindow;
-    private IntPtr _desktopHost;
+    private IntPtr _progman;
     private IntPtr _shellView;
-    private IntPtr _foregroundHook;
-    private bool _desktopVisible;
+    private IntPtr _workerW;
     private bool _disposed;
 
     public DesktopLayerService(Dispatcher dispatcher)
     {
-        _dispatcher = dispatcher;
-        _winEventCallback = OnForegroundChanged;
         _shellPoll = new DispatcherTimer(DispatcherPriority.Background, dispatcher)
         {
-            Interval = TimeSpan.FromSeconds(1)
+            Interval = TimeSpan.FromSeconds(2)
         };
-        _shellPoll.Tick += (_, _) => RefreshDesktopState();
-        _foregroundHook = SetWinEventHook(
-            EventSystemForeground, EventSystemForeground, IntPtr.Zero,
-            _winEventCallback, 0, 0,
-            WineventOutOfContext | WineventSkipOwnProcess);
+        _shellPoll.Tick += (_, _) => RefreshShellHandles();
         _shellPoll.Start();
     }
 
@@ -74,39 +55,66 @@ internal sealed class DesktopLayerService : IDisposable
         var hwnd = new WindowInteropHelper(window).Handle;
         if (hwnd == IntPtr.Zero)
         {
-            error = "La ventana del widget todavía no tiene un identificador Win32.";
+            error = "El widget todavía no tiene un identificador Win32.";
             return false;
         }
-        if (_widgets.ContainsKey(hwnd)) return true;
+        if (_widgets.ContainsKey(hwnd))
+            return true;
 
         try
         {
-            EnsureHelperWindow();
-            var originalStyle = GetWindowLongPtr(hwnd, GwlStyle).ToInt64();
-            // WPF top-level windows are not required to carry WS_POPUP. The invariant
-            // needed by this Z-order strategy is that the HWND is not a child and is
-            // its own GA_ROOT. Checking WS_POPUP rejects valid borderless WPF windows.
-            if ((originalStyle & WsChild) != 0 || GetAncestor(hwnd, GaRoot) != hwnd)
+            if (!IsSupportedModernWindows())
             {
-                error = "El identificador Win32 del widget no corresponde a una ventana independiente de nivel superior.";
+                error = "Esta primera implementación requiere Windows 11 24H2 o 25H2 (compilación 26100 o posterior).";
                 return false;
             }
 
-            // Keep the HWND top-level. Only adjust the tool-window hint; never call SetParent.
-            var exStyle = GetWindowLongPtr(hwnd, GwlExStyle).ToInt64();
-            if ((exStyle & WsExToolWindow) == 0)
+            if (!DiscoverDesktopWindows(out error))
+                return false;
+
+            var style = GetWindowLongPtr(hwnd, GwlStyle).ToInt64();
+            if ((style & WsChild) != 0)
             {
-                Marshal.SetLastPInvokeError(0);
-                _ = SetWindowLongPtr(hwnd, GwlExStyle, new IntPtr(exStyle | WsExToolWindow));
-                if (Marshal.GetLastPInvokeError() != 0)
-                {
-                    error = "No se pudo configurar el estilo auxiliar del widget.";
-                    return false;
-                }
+                error = "El HWND del widget ya es una ventana hija y no se puede adjuntar de forma segura.";
+                return false;
             }
 
-            _widgets.Add(hwnd, new Attachment(window, exStyle));
-            RefreshDesktopState(force: true);
+            var exStyle = GetWindowLongPtr(hwnd, GwlExStyle).ToInt64();
+            var originalParent = GetParent(hwnd);
+            var attachment = new Attachment(window, originalParent, style, exStyle);
+
+            // WPF widgets use AllowsTransparency=True, which already enables
+            // WS_EX_LAYERED. Do not call SetLayeredWindowAttributes here:
+            // it would interfere with WPF's per-pixel UpdateLayeredWindow path.
+            var childStyle = (style & ~WsPopup) | WsChild;
+            SetWindowLongChecked(hwnd, GwlStyle, childStyle);
+
+            Marshal.SetLastPInvokeError(0);
+            var previousParent = SetParent(hwnd, _progman);
+            var parentError = Marshal.GetLastPInvokeError();
+            if (previousParent == IntPtr.Zero && parentError != 0)
+            {
+                SetWindowLongPtr(hwnd, GwlStyle, new IntPtr(style));
+                error = $"SetParent(Progman) falló. Error Win32: {parentError}.";
+                return false;
+            }
+
+            _widgets.Add(hwnd, attachment);
+
+            // SetWindowPos(hwnd, shellView) places the widget immediately below
+            // the icon view. Then put WorkerW below the widget, so the wallpaper
+            // remains behind it. All are children of Progman on the modern path.
+            if (!SetWindowPos(hwnd, _shellView, 0, 0, 0, 0, PositionFlags) ||
+                (_workerW != IntPtr.Zero &&
+                 !SetWindowPos(_workerW, hwnd, 0, 0, 0, 0, PositionFlags)))
+            {
+                var win32Error = Marshal.GetLastPInvokeError();
+                RestoreAttachment(hwnd, attachment);
+                _widgets.Remove(hwnd);
+                error = $"No se pudo establecer el orden Z de Progman. Error Win32: {win32Error}.";
+                return false;
+            }
+
             return true;
         }
         catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException or
@@ -121,217 +129,171 @@ internal sealed class DesktopLayerService : IDisposable
     {
         ArgumentNullException.ThrowIfNull(window);
         var hwnd = new WindowInteropHelper(window).Handle;
-        if (hwnd == IntPtr.Zero || !_widgets.Remove(hwnd, out var attachment)) return;
+        if (hwnd == IntPtr.Zero || !_widgets.Remove(hwnd, out var attachment))
+            return;
 
-        // Return to the ordinary non-topmost window band without activating it.
-        _ = SetWindowPos(hwnd, HwndNotTopmost, 0, 0, 0, 0, PositionFlags);
-        _ = SetWindowPos(hwnd, HwndBottom, 0, 0, 0, 0, PositionFlags);
-        _ = SetWindowLongPtr(hwnd, GwlExStyle, new IntPtr(attachment.OriginalExStyle));
-        if (_widgets.Count == 0) _desktopVisible = false;
+        RestoreAttachment(hwnd, attachment);
     }
 
     public void Forget(Window window)
     {
         var hwnd = new WindowInteropHelper(window).Handle;
-        if (hwnd != IntPtr.Zero) _widgets.Remove(hwnd);
+        if (hwnd != IntPtr.Zero)
+            _widgets.Remove(hwnd);
     }
 
-    /// <summary>Explicit user action only. Automatic Z-order maintenance never activates a widget.</summary>
-    public void Activate(Window window)
+    private bool DiscoverDesktopWindows(out string error)
     {
-        var hwnd = new WindowInteropHelper(window).Handle;
-        if (hwnd == IntPtr.Zero || !_widgets.ContainsKey(hwnd)) return;
-        window.Activate();
-    }
-
-    private void EnsureHelperWindow()
-    {
-        if (_helperWindow != IntPtr.Zero && IsWindow(_helperWindow)) return;
-        _helperWindow = CreateWindowEx(
-            0x00000080, "STATIC", "DeskNotes Desktop Layer",
-            unchecked((int)(WsPopup | 0x08000000)), 0, 0, 0, 0,
-            IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
-        if (_helperWindow == IntPtr.Zero)
-            throw new InvalidOperationException("No se pudo crear la ventana auxiliar de orden Z.");
-    }
-
-    private void OnForegroundChanged(IntPtr hook, uint eventType, IntPtr hwnd,
-        int idObject, int idChild, uint threadId, uint eventTime)
-    {
-        if (_disposed) return;
-        _ = _dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => RefreshDesktopState()));
-    }
-
-    private void RefreshDesktopState(bool force = false)
-    {
-        if (_disposed || _widgets.Count == 0) return;
-
-        var shellView = FindDesktopShellView();
-        var host = shellView == IntPtr.Zero ? IntPtr.Zero : GetAncestor(shellView, GaRoot);
-        if (host == IntPtr.Zero && shellView != IntPtr.Zero)
-            host = GetAncestor(shellView, GaParent);
-
-        // Explorer can restart and recreate every desktop HWND. Re-discover on each poll.
-        var shellChanged = host != _desktopHost || shellView != _shellView;
-        _desktopHost = host;
-        _shellView = shellView;
-
-        var foreground = GetForegroundWindow();
-        var foregroundIsDesktop = foreground == host || foreground == GetAncestor(shellView, GaParent) ||
-            IsForegroundDesktopWorker(foreground);
-        var foregroundIsWidget = _widgets.ContainsKey(foreground);
-        var desktopVisible = DesktopLayerStatePolicy.ShouldShowDesktopBand(
-            host != IntPtr.Zero && IsWindowVisible(host),
-            foregroundIsDesktop,
-            foregroundIsWidget,
-            _desktopVisible);
-
-        if (!force && !shellChanged && desktopVisible == _desktopVisible)
+        error = string.Empty;
+        var progman = FindWindow("Progman", null);
+        if (progman == IntPtr.Zero)
         {
-            // WPF may raise a clicked popup. Put it back behind the reference HWND
-            // without changing activation or keyboard focus.
-            if (foregroundIsWidget && _desktopVisible && _helperWindow != IntPtr.Zero)
-                _ = SetWindowPos(foreground, _helperWindow, 0, 0, 0, 0, PositionFlags);
+            error = "No se encontró la ventana Progman de Explorer.";
+            return false;
+        }
+
+        // On Windows 11 24H2/25H2 Explorer exposes the icon view and wallpaper
+        // WorkerW as children of Progman. Ask the shell to initialize that band
+        // using the modern message parameters, then query the hierarchy again.
+        _ = SendMessageTimeout(progman, DesktopWorkerMessage,
+            ModernWorkerWParam, ModernWorkerLParam,
+            SmtoAbortIfHung, 1000, out _);
+
+        var shellView = FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+        if (shellView == IntPtr.Zero)
+        {
+            error = "Explorer no expone SHELLDLL_DefView como hijo directo de Progman. No se modificará ningún widget.";
+            return false;
+        }
+
+        var workerW = FindWindowEx(progman, IntPtr.Zero, "WorkerW", null);
+        if (workerW == IntPtr.Zero)
+        {
+            // Some builds create the wallpaper WorkerW only after the legacy
+            // initialization message. Re-query once; never fall back to guessing
+            // an unrelated top-level WorkerW.
+            _ = SendMessageTimeout(progman, DesktopWorkerMessage,
+                0, 0, SmtoAbortIfHung, 1000, out _);
+            workerW = FindWindowEx(progman, IntPtr.Zero, "WorkerW", null);
+        }
+
+        _progman = progman;
+        _shellView = shellView;
+        _workerW = workerW;
+        return true;
+    }
+
+    private void RefreshShellHandles()
+    {
+        if (_disposed || _widgets.Count == 0)
+            return;
+
+        if (_progman == IntPtr.Zero || !IsWindow(_progman) ||
+            _shellView == IntPtr.Zero || !IsWindow(_shellView))
+        {
+            // Explorer may have restarted. Do not silently reparent HWNDs to an
+            // unverified window tree; let the user return to normal mode instead.
             return;
         }
-        _desktopVisible = desktopVisible;
-
-        if (_desktopVisible && _desktopHost != IntPtr.Zero)
-            PositionHelperBehindDesktop(_desktopHost);
-        else
-            _ = SetWindowPos(_helperWindow, HwndBottom, 0, 0, 0, 0, PositionFlags);
-
-        foreach (var hwnd in _widgets.Keys.ToArray())
-        {
-            if (!IsWindow(hwnd))
-            {
-                _widgets.Remove(hwnd);
-                continue;
-            }
-
-            if (_desktopVisible)
-            {
-                // Insert each popup immediately behind the reference window.
-                _ = SetWindowPos(hwnd, _helperWindow, 0, 0, 0, 0, PositionFlags);
-            }
-            else
-            {
-                // Keep widgets below normal application windows when the desktop is covered.
-                _ = SetWindowPos(hwnd, HwndNotTopmost, 0, 0, 0, 0, PositionFlags);
-                _ = SetWindowPos(hwnd, HwndBottom, 0, 0, 0, 0, PositionFlags);
-            }
-        }
     }
 
-    private void PositionHelperBehindDesktop(IntPtr desktopHost)
+    private static bool IsSupportedModernWindows()
     {
-        _ = SetWindowPos(_helperWindow, HwndTopmost, 0, 0, 0, 0, PositionFlags);
-
-        // Rainmeter's strategy: find the backmost topmost window above the desktop host,
-        // then insert the helper immediately after it. This preserves the topmost band
-        // without placing widgets above ordinary foreground applications.
-        var candidate = desktopHost;
-        while ((candidate = GetWindow(candidate, 3)) != IntPtr.Zero) // GW_HWNDPREV
-        {
-            if ((GetWindowLongPtr(candidate, GwlExStyle).ToInt64() & 0x00000008L) != 0)
-            {
-                if (SetWindowPos(_helperWindow, candidate, 0, 0, 0, 0, PositionFlags))
-                    return;
-            }
-        }
-
-        _ = SetWindowPos(_helperWindow, HwndTopmost, 0, 0, 0, 0, PositionFlags);
+        var version = new OsVersionInfo { Size = (uint)Marshal.SizeOf<OsVersionInfo>() };
+        return RtlGetVersion(ref version) == 0 &&
+               version.MajorVersion == 10 &&
+               version.BuildNumber >= MinimumModernDesktopBuild;
     }
 
-    private static IntPtr FindDesktopShellView()
+    private static void SetWindowLongChecked(IntPtr hwnd, int index, long value)
     {
-        var progman = FindWindow("Progman", null);
-        if (progman != IntPtr.Zero)
-        {
-            var view = FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
-            if (view != IntPtr.Zero) return view;
-        }
-
-        IntPtr result = IntPtr.Zero;
-        _ = EnumWindows((top, _) =>
-        {
-            result = FindWindowEx(top, IntPtr.Zero, "SHELLDLL_DefView", null);
-            return result == IntPtr.Zero;
-        }, IntPtr.Zero);
-        return result;
+        Marshal.SetLastPInvokeError(0);
+        _ = SetWindowLongPtr(hwnd, index, new IntPtr(value));
+        var error = Marshal.GetLastPInvokeError();
+        if (error != 0)
+            throw new InvalidOperationException($"SetWindowLongPtr falló. Error Win32: {error}.");
     }
 
-    private static bool IsForegroundDesktopWorker(IntPtr foreground)
+    private static void RestoreAttachment(IntPtr hwnd, Attachment attachment)
     {
-        if (foreground == IntPtr.Zero) return false;
-        var className = new char[32];
-        return GetClassName(foreground, className, className.Length) > 0 &&
-               new string(className).TrimEnd('\0') == "WorkerW";
+        if (!IsWindow(hwnd))
+            return;
+
+        Marshal.SetLastPInvokeError(0);
+        _ = SetParent(hwnd, attachment.OriginalParent);
+        var parentError = Marshal.GetLastPInvokeError();
+
+        _ = SetWindowLongPtr(hwnd, GwlStyle, new IntPtr(attachment.OriginalStyle));
+        _ = SetWindowLongPtr(hwnd, GwlExStyle, new IntPtr(attachment.OriginalExStyle));
+        _ = SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0,
+            SwpNoMove | SwpNoSize | SwpNoActivate | SwpFrameChanged);
+
+        if (parentError != 0)
+            System.Diagnostics.Debug.WriteLine($"DeskNotes: no se pudo restaurar el parent del widget. Error Win32: {parentError}.");
     }
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
+
         _disposed = true;
         _shellPoll.Stop();
-        if (_foregroundHook != IntPtr.Zero)
-        {
-            _ = UnhookWinEvent(_foregroundHook);
-            _foregroundHook = IntPtr.Zero;
-        }
 
         foreach (var pair in _widgets.ToArray())
-        {
-            _ = SetWindowPos(pair.Key, HwndNotTopmost, 0, 0, 0, 0, PositionFlags);
-            _ = SetWindowPos(pair.Key, HwndBottom, 0, 0, 0, 0, PositionFlags);
-            _ = SetWindowLongPtr(pair.Key, GwlExStyle, new IntPtr(pair.Value.OriginalExStyle));
-        }
-        _widgets.Clear();
+            RestoreAttachment(pair.Key, pair.Value);
 
-        if (_helperWindow != IntPtr.Zero && IsWindow(_helperWindow))
-            _ = DestroyWindow(_helperWindow);
-        _helperWindow = IntPtr.Zero;
+        _widgets.Clear();
     }
 
-    private sealed record Attachment(Window Window, long OriginalExStyle);
+    private sealed record Attachment(
+        Window Window,
+        IntPtr OriginalParent,
+        long OriginalStyle,
+        long OriginalExStyle);
 
-    private delegate bool EnumWindowsCallback(IntPtr hwnd, IntPtr lParam);
-    private delegate void WinEventDelegate(IntPtr hook, uint eventType, IntPtr hwnd,
-        int idObject, int idChild, uint threadId, uint eventTime);
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct OsVersionInfo
+    {
+        public uint Size;
+        public uint MajorVersion;
+        public uint MinorVersion;
+        public uint BuildNumber;
+        public uint PlatformId;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string ServicePack;
+    }
+
+    [DllImport("ntdll.dll")]
+    private static extern int RtlGetVersion(ref OsVersionInfo version);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern IntPtr FindWindow(string? className, string? windowName);
+
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr childAfter, string? className, string? windowName);
+
     [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool EnumWindows(EnumWindowsCallback callback, IntPtr lParam);
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern int GetClassName(IntPtr hwnd, char[] className, int maxCount);
+    private static extern IntPtr GetParent(IntPtr hwnd);
+
     [DllImport("user32.dll", SetLastError = true)]
-    private static extern IntPtr GetWindow(IntPtr hwnd, uint command);
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern IntPtr GetAncestor(IntPtr hwnd, uint flags);
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool IsWindow(IntPtr hwnd);
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool IsWindowVisible(IntPtr hwnd);
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern IntPtr GetForegroundWindow();
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern IntPtr CreateWindowEx(int exStyle, string className, string windowName,
-        int style, int x, int y, int width, int height, IntPtr parent, IntPtr menu, IntPtr instance, IntPtr param);
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool DestroyWindow(IntPtr hwnd);
+    private static extern IntPtr SetParent(IntPtr child, IntPtr newParent);
+
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
     private static extern IntPtr GetWindowLongPtr(IntPtr hwnd, int index);
+
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
     private static extern IntPtr SetWindowLongPtr(IntPtr hwnd, int index, IntPtr value);
+
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool SetWindowPos(IntPtr hwnd, IntPtr insertAfter, int x, int y,
         int width, int height, uint flags);
+
     [DllImport("user32.dll", SetLastError = true)]
-    private static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr module,
-        WinEventDelegate callback, uint processId, uint threadId, uint flags);
+    private static extern bool IsWindow(IntPtr hwnd);
+
     [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool UnhookWinEvent(IntPtr hook);
+    private static extern IntPtr SendMessageTimeout(IntPtr hwnd, uint message,
+        nuint wParam, nint lParam, uint flags, uint timeout, out nuint result);
 }
