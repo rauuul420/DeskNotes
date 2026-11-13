@@ -99,7 +99,7 @@ public sealed class AppSettingsServiceTests
         try
         {
             var path = Path.Combine(directory, "settings.json");
-            await File.WriteAllTextAsync(path, "{ \\"openNotes\\": null, \\"savedNotes\\": null }");
+            await File.WriteAllTextAsync(path, """{"openNotes": null, "savedNotes": null}""");
             var service = new JsonAppSettingsService(path);
 
             var settings = await service.LoadAsync();
