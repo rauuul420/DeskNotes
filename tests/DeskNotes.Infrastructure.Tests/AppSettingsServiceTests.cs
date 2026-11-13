@@ -99,7 +99,7 @@ public sealed class AppSettingsServiceTests
         try
         {
             var path = Path.Combine(directory, "settings.json");
-            await File.WriteAllTextAsync(path, "{ \"openNotes\": null }");
+            await File.WriteAllTextAsync(path, "{ \\"openNotes\\": null, \\"savedNotes\\": null }");
             var service = new JsonAppSettingsService(path);
 
             var settings = await service.LoadAsync();
@@ -130,7 +130,7 @@ public sealed class AppSettingsServiceTests
                 [
                     new SavedNote
                     {
-                        FilePath = @\\"C:\\\\Users\\\\User\\\\Documents\\\\ideas.md\\\\",
+                        FilePath = "C:\\Users\\User\\Documents\\ideas.md",
                         Title = "Ideas",
                         AddedAt = DateTimeOffset.Parse("2026-11-13T10:00:00Z")
                     }
