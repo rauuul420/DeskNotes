@@ -521,12 +521,6 @@ public partial class MainWindow : Window
         _settingsSaveTimer.Stop();
 
         var windowsToClose = _noteWindows.ToArray();
-        var openNoteStates = windowsToClose
-            .Select(window => window.CaptureState())
-            .Where(state => state is not null)
-            .Cast<NoteWindowState>()
-            .ToList();
-
         foreach (var window in windowsToClose)
         {
             if (!await window.RequestCloseAsync())
@@ -536,6 +530,12 @@ public partial class MainWindow : Window
                 return;
             }
         }
+
+        var openNoteStates = windowsToClose
+            .Select(window => window.CaptureState())
+            .Where(state => state is not null)
+            .Cast<NoteWindowState>()
+            .ToList();
 
         try
         {
