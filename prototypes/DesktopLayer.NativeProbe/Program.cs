@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows.Forms;
 
 namespace DeskNotes.DesktopLayer.NativeProbe;
@@ -295,7 +296,7 @@ internal sealed class DesktopSurface : IDisposable
             for (var x = 0; x < Width; x++)
             {
                 var border = x < 3 || y < 3 || x >= Width - 3 || y >= Height - 3;
-                var alpha = border ? 255 : (byte)218;
+                byte alpha = border ? (byte)255 : (byte)218;
                 var red = border ? (byte)95 : (byte)28;
                 var green = border ? (byte)165 : (byte)38;
                 var blue = border ? (byte)245 : (byte)58;
