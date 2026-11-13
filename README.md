@@ -8,19 +8,28 @@ DeskNotes busca ofrecer una forma sencilla de mantener a la vista notas y docume
 
 ## Estado del proyecto
 
-El proyecto se encuentra en una fase inicial de definición y desarrollo. La primera meta es construir un MVP estable que permita crear, abrir, editar y guardar notas en ventanas independientes.
+El proyecto está desarrollando su primer MVP. Ya existe un flujo de creación, apertura y edición en ventanas independientes, con almacenamiento TXT/Markdown y protección frente a cambios externos. La compilación Release y las pruebas automatizadas pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404. La persistencia/restauración de ventanas, «Guardar como» y la biblioteca persistente «Mis notas» están implementados en ramas de desarrollo. La coordinación del guardado está extraída a Core y cuenta con pruebas independientes de WPF.
 
 Consulta la [hoja de ruta](docs/roadmap.md) para conocer las fases previstas y los [requisitos](docs/requirements.md) para ver el alcance funcional.
 
 ## Funcionalidades previstas
 
-- Abrir archivos TXT y Markdown.
-- Crear notas nuevas.
-- Editar y guardar el contenido en los archivos originales.
-- Mostrar cada nota en una ventana flotante independiente.
-- Mover y redimensionar las ventanas.
-- Recordar la posición y el tamaño de las notas.
+- Crear notas nuevas y abrir archivos TXT y Markdown.
+- Editar y guardar el contenido en archivos normales UTF-8.
+- Guardar una nota en otra ubicación o con otro nombre mediante «Guardar como».
+- Usar Ctrl+S para guardar y Ctrl+Mayús+S para «Guardar como».
+- Mostrar cada nota en una ventana independiente.
+- Avisar de cambios sin guardar antes de cerrar.
+- Detectar modificaciones externas del archivo antes de sobrescribirlo.
 - Activar o desactivar la opción de mantener una nota siempre visible.
+- Recordar las posiciones y tamaños de las ventanas.
+- Restaurar las notas abiertas en el siguiente inicio.
+- Mantener una biblioteca «Mis notas» independiente de las ventanas abiertas.
+- Crear widgets flotantes de escritorio con título y vista previa del contenido de una nota.
+- Mover y redimensionar widgets, abrir su nota en el editor y elegir si permanecen encima de otras ventanas.
+- Restaurar los widgets y su posición al iniciar DeskNotes.
+
+El guardado automático y la vista previa de Markdown todavía no están implementados. Los widgets de escritorio se muestran como ventanas compactas sin botón en la barra de tareas; no se incrustan todavía en la capa del escritorio detrás de los iconos. La biblioteca «Mis notas» guarda rutas y títulos en la configuración local; el contenido continúa en los archivos originales.
 
 Las funciones avanzadas —como vista previa Markdown, transparencia, temas, etiquetas, búsqueda y sincronización— se incorporarán después del MVP.
 
@@ -53,7 +62,9 @@ DeskNotes/
 │   ├── DeskNotes.App/
 │   ├── DeskNotes.Core/
 │   └── DeskNotes.Infrastructure/
-├── tests/                       # Se incorporará al crear los proyectos de pruebas
+├── tests/
+│   ├── DeskNotes.Core.Tests/
+│   └── DeskNotes.Infrastructure.Tests/
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── DeskNotes.slnx
@@ -67,6 +78,7 @@ DeskNotes/
 - [Arquitectura técnica](docs/architecture.md)
 - [ADR-001: selección tecnológica](docs/decisions/ADR-001-technology-stack.md)
 - [ADR-002: almacenamiento basado en archivos](docs/decisions/ADR-002-file-storage.md)
+- [ADR-003: persistencia del estado de ventanas](docs/decisions/ADR-003-window-state-persistence.md)
 - [Guía de contribución](CONTRIBUTING.md)
 - [Historial de cambios](CHANGELOG.md)
 

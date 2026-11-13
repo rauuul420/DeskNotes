@@ -1,7 +1,7 @@
 # Hoja de ruta
 
 **Proyecto:** DeskNotes  
-**Estado:** planificación inicial  
+**Estado:** MVP en desarrollo  
 **Versión actual prevista:** 0.1.0
 
 Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objetivos, no fechas comprometidas. Se podrán ajustar cuando aparezcan dificultades técnicas o cambien las prioridades.
@@ -14,9 +14,9 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 - [x] Elegir C#, .NET 10 y WPF.
 - [x] Crear la solución y los proyectos iniciales App, Core e Infrastructure.
 - [x] Configurar el repositorio Git y GitHub.
-- [ ] Completar y revisar la documentación del producto.
-- [ ] Definir las primeras tareas de desarrollo.
-- [ ] Definir la estrategia inicial de pruebas.
+- [x] Completar y revisar la documentación del producto.
+- [x] Definir las primeras tareas de desarrollo.
+- [x] Definir la estrategia inicial de pruebas.
 
 **Resultado esperado:** documentación inicial, arquitectura acordada y repositorio preparado para el desarrollo incremental.
 
@@ -24,39 +24,49 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 
 **Objetivo:** disponer de una aplicación útil para crear, abrir y editar notas en ventanas flotantes.
 
+**Estado de implementación:** el flujo de creación, apertura, edición y guardado TXT/Markdown está implementado en `feature/note-window-mvp`; la persistencia/restauración de ventanas está en `feature/window-state-persistence`; «Guardar como» está en `feature/save-as-workflow`. Estas ramas siguen en PR y no forman parte de `main`. Las pruebas de almacenamiento y configuración pasan en CI; la separación testeable del guardado está implementada y la biblioteca persistente «Mis notas» está en desarrollo. Falta validar manualmente la interfaz y los escenarios de sesión en Windows.
+
 ### Gestión de notas y archivos
 
-- [ ] Crear una nota nueva.
-- [ ] Abrir archivos TXT.
-- [ ] Abrir archivos MD como texto editable.
-- [ ] Editar el contenido.
-- [ ] Guardar en el archivo original.
+- [x] Crear una nota nueva.
+- [x] Abrir archivos TXT.
+- [x] Abrir archivos MD como texto editable.
+- [x] Editar el contenido.
+- [x] Guardar en el archivo original.
+- [x] Guardar una nota en otra ubicación mediante «Guardar como».
+- [x] Mantener una biblioteca de archivos guardados independiente de las ventanas abiertas.
+- [x] Volver a abrir una nota desde «Mis notas».
+- [x] Quitar una entrada de la biblioteca sin eliminar el archivo original.
 - [ ] Gestionar errores de lectura y escritura.
-- [ ] Avisar antes de descartar cambios sin guardar.
+- [x] Avisar antes de descartar cambios sin guardar.
 
 ### Ventanas
 
-- [ ] Mostrar cada nota en una ventana independiente.
-- [ ] Permitir mover las ventanas.
-- [ ] Permitir redimensionarlas.
-- [ ] Activar y desactivar la opción de mantener encima.
-- [ ] Recordar posición y tamaño.
-- [ ] Restaurar las ventanas al iniciar la aplicación.
+- [x] Mostrar cada nota en una ventana independiente.
+- [x] Permitir mover las ventanas.
+- [x] Permitir redimensionarlas.
+- [x] Activar y desactivar la opción de mantener encima.
+- [x] Recordar posición y tamaño.
+- [x] Restaurar las ventanas al iniciar la aplicación.
 
 ### Calidad
 
-- [ ] Incorporar pruebas automatizadas para la lógica que corresponda.
+- [x] Incorporar pruebas automatizadas para almacenamiento, configuración y lógica de guardado.
 - [ ] Verificar manualmente los criterios de aceptación del MVP.
-- [ ] Actualizar README y documentación.
+- [x] Actualizar README y documentación.
 - [ ] Preparar la primera versión 0.1.0.
 
-**Resultado esperado:** flujo básico de notas fiable y comprobado.
+**Resultado esperado:** flujo básico de notas fiable y comprobado. Las casillas de implementación no sustituyen la validación manual de los criterios de aceptación.
 
 ## Fase 2 — Experiencia de usuario (v0.2.x)
 
 **Objetivo:** mejorar la comodidad y la presentación de las notas.
 
 - [ ] Guardado automático configurable.
+- [x] Widgets flotantes de escritorio con título y vista previa del contenido.
+- [x] Mover, redimensionar y restaurar widgets entre sesiones.
+- [x] Abrir una nota en el editor desde su widget.
+- [ ] Integrar widgets directamente en la capa del escritorio detrás de los iconos de Windows.
 - [ ] Transparencia configurable.
 - [ ] Colores y temas.
 - [ ] Tipografías y tamaños de texto.
@@ -99,9 +109,9 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 
 ## Líneas de investigación futuras
 
-### Integración con el escritorio de Windows
+### Integración profunda con el escritorio de Windows
 
-Se estudiará si es viable mostrar notas directamente en la superficie del escritorio, detrás de los iconos. Esta integración requiere comportamiento específico de Windows y no debe condicionar el diseño del MVP.
+La primera implementación usa ventanas WPF compactas, sin borde ni entrada en la barra de tareas, que se pueden mover, redimensionar y mantener encima opcionalmente. Como evolución independiente se estudiará la integración en la superficie del escritorio detrás de los iconos; requiere comportamiento específico de Windows y no se considera necesaria para la primera versión de los widgets.
 
 ### Sincronización
 

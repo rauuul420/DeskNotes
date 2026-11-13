@@ -5,6 +5,7 @@
     <Project Path="src/DeskNotes.Infrastructure/DeskNotes.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/DeskNotes.Core.Tests/DeskNotes.Core.Tests.csproj" />
     <Project Path="tests/DeskNotes.Infrastructure.Tests/DeskNotes.Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>
