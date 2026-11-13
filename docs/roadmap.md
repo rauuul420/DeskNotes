@@ -1,7 +1,7 @@
 # Hoja de ruta
 
 **Proyecto:** DeskNotes  
-**Estado:** planificación inicial  
+**Estado:** MVP en desarrollo  
 **Versión actual prevista:** 0.1.0
 
 Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objetivos, no fechas comprometidas. Se podrán ajustar cuando aparezcan dificultades técnicas o cambien las prioridades.
@@ -14,15 +14,17 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 - [x] Elegir C#, .NET 10 y WPF.
 - [x] Crear la solución y los proyectos iniciales App, Core e Infrastructure.
 - [x] Configurar el repositorio Git y GitHub.
-- [ ] Completar y revisar la documentación del producto.
-- [ ] Definir las primeras tareas de desarrollo.
-- [ ] Definir la estrategia inicial de pruebas.
+- [x] Completar y revisar la documentación del producto.
+- [x] Definir las primeras tareas de desarrollo.
+- [x] Definir la estrategia inicial de pruebas.
 
 **Resultado esperado:** documentación inicial, arquitectura acordada y repositorio preparado para el desarrollo incremental.
 
 ## Fase 1 — MVP (v0.1.0)
 
 **Objetivo:** disponer de una aplicación útil para crear, abrir y editar notas en ventanas flotantes.
+
+**Estado de implementación:** el primer flujo de interfaz y almacenamiento está en desarrollo en `feature/note-window-mvp`. La compilación Release y las 10 pruebas automatizadas ya pasan en GitHub Actions sobre Windows. La fase no se considera terminada hasta comprobar manualmente la interfaz y completar los criterios de aceptación en un escritorio Windows.
 
 ### Gestión de notas y archivos
 

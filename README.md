@@ -8,19 +8,20 @@ DeskNotes busca ofrecer una forma sencilla de mantener a la vista notas y docume
 
 ## Estado del proyecto
 
-El proyecto se encuentra en una fase inicial de definición y desarrollo. La primera meta es construir un MVP estable que permita crear, abrir, editar y guardar notas en ventanas independientes.
+El proyecto está desarrollando su primer MVP. Ya existe una base de almacenamiento TXT/Markdown con pruebas y se está incorporando el flujo de creación, apertura y edición en ventanas independientes. La compilación Release y las 10 pruebas automatizadas pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404. Falta la comprobación manual de la interfaz en un escritorio Windows.
 
 Consulta la [hoja de ruta](docs/roadmap.md) para conocer las fases previstas y los [requisitos](docs/requirements.md) para ver el alcance funcional.
 
 ## Funcionalidades previstas
 
-- Abrir archivos TXT y Markdown.
-- Crear notas nuevas.
-- Editar y guardar el contenido en los archivos originales.
-- Mostrar cada nota en una ventana flotante independiente.
-- Mover y redimensionar las ventanas.
-- Recordar la posición y el tamaño de las notas.
+- Crear notas nuevas y abrir archivos TXT y Markdown.
+- Editar y guardar el contenido en archivos normales UTF-8.
+- Mostrar cada nota en una ventana independiente.
+- Avisar de cambios sin guardar antes de cerrar.
+- Detectar modificaciones externas del archivo antes de sobrescribirlo.
 - Activar o desactivar la opción de mantener una nota siempre visible.
+
+La restauración de ventanas, el guardado automático y la vista previa de Markdown todavía no están implementados.
 
 Las funciones avanzadas —como vista previa Markdown, transparencia, temas, etiquetas, búsqueda y sincronización— se incorporarán después del MVP.
 
@@ -53,7 +54,8 @@ DeskNotes/
 │   ├── DeskNotes.App/
 │   ├── DeskNotes.Core/
 │   └── DeskNotes.Infrastructure/
-├── tests/                       # Se incorporará al crear los proyectos de pruebas
+├── tests/
+│   └── DeskNotes.Infrastructure.Tests/
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── DeskNotes.slnx
