@@ -326,6 +326,7 @@ public partial class NoteWindow : Window
             return;
         }
 
+        _autoSaveTimer.Stop();
         _allowClose = true;
         Close();
     }
