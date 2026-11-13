@@ -8,7 +8,7 @@ DeskNotes busca ofrecer una forma sencilla de mantener a la vista notas y docume
 
 ## Estado del proyecto
 
-El proyecto está desarrollando su primer MVP. Ya existe un flujo de creación, apertura y edición en ventanas independientes, con almacenamiento TXT/Markdown y protección frente a cambios externos. La compilación Release y las 10 pruebas de la primera entrega pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404. La persistencia y restauración de ventanas está en desarrollo en una segunda rama.
+El proyecto está desarrollando su primer MVP. Ya existe un flujo de creación, apertura y edición en ventanas independientes, con almacenamiento TXT/Markdown y protección frente a cambios externos. La compilación Release y las pruebas automatizadas pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404. La persistencia y restauración de ventanas está en desarrollo en una segunda rama.
 
 Consulta la [hoja de ruta](docs/roadmap.md) para conocer las fases previstas y los [requisitos](docs/requirements.md) para ver el alcance funcional.
 
@@ -71,6 +71,7 @@ DeskNotes/
 - [Arquitectura técnica](docs/architecture.md)
 - [ADR-001: selección tecnológica](docs/decisions/ADR-001-technology-stack.md)
 - [ADR-002: almacenamiento basado en archivos](docs/decisions/ADR-002-file-storage.md)
+- [ADR-003: persistencia del estado de ventanas](docs/decisions/ADR-003-window-state-persistence.md)
 - [Guía de contribución](CONTRIBUTING.md)
 - [Historial de cambios](CHANGELOG.md)
 
