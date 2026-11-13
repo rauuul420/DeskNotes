@@ -63,6 +63,10 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 **Objetivo:** mejorar la comodidad y la presentación de las notas.
 
 - [ ] Guardado automático configurable.
+- [x] Widgets flotantes de escritorio con título y vista previa del contenido.
+- [x] Mover, redimensionar y restaurar widgets entre sesiones.
+- [x] Abrir una nota en el editor desde su widget.
+- [ ] Integrar widgets directamente en la capa del escritorio detrás de los iconos de Windows.
 - [ ] Transparencia configurable.
 - [ ] Colores y temas.
 - [ ] Tipografías y tamaños de texto.
@@ -105,9 +109,9 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 
 ## Líneas de investigación futuras
 
-### Integración con el escritorio de Windows
+### Integración profunda con el escritorio de Windows
 
-Se estudiará si es viable mostrar notas directamente en la superficie del escritorio, detrás de los iconos. Esta integración requiere comportamiento específico de Windows y no debe condicionar el diseño del MVP.
+La primera implementación usa ventanas WPF compactas, sin borde ni entrada en la barra de tareas, que se pueden mover, redimensionar y mantener encima opcionalmente. Como evolución independiente se estudiará la integración en la superficie del escritorio detrás de los iconos; requiere comportamiento específico de Windows y no se considera necesaria para la primera versión de los widgets.
 
 ### Sincronización
 
