@@ -56,7 +56,7 @@ public sealed class NoteFileServiceTests
                          bytes[1] == 0xBB &&
                          bytes[2] == 0xBF);
             Assert.NotNull(note.SourceLastWriteTimeUtc);
-            Assert.Equal(bytes.Length, note.SourceLength);
+            Assert.Equal((long)bytes.Length, note.SourceLength!.Value);
         }
         finally
         {
