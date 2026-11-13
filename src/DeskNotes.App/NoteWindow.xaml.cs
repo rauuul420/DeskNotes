@@ -22,7 +22,15 @@ public partial class NoteWindow : Window
     private bool _isHandlingClose;
     private bool _allowClose;
 
-    public NoteWindow(Note note, string? filePath, INoteFileService noteFileService)
+    public event EventHandler? PlacementChanged;
+
+    public string? FilePath => _filePath;
+
+    public NoteWindow(
+        Note note,
+        string? filePath,
+        INoteFileService noteFileService,
+        NoteWindowState? savedState = null)
     {
         ArgumentNullException.ThrowIfNull(note);
         ArgumentNullException.ThrowIfNull(noteFileService);
@@ -36,8 +44,78 @@ public partial class NoteWindow : Window
 
         EditorTextBox.Text = _savedContent;
         _isInitializing = false;
+
+        if (savedState is not null && IsValidVisiblePlacement(savedState))
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = savedState.Left;
+            Top = savedState.Top;
+            Width = savedState.Width;
+            Height = savedState.Height;
+            Topmost = savedState.IsTopmost;
+            AlwaysOnTopCheckBox.IsChecked = savedState.IsTopmost;
+        }
+
+        LocationChanged += OnPlacementChanged;
+        SizeChanged += OnPlacementChanged;
+        StateChanged += OnPlacementChanged;
+
         UpdateWindowTitle();
         StatusText.Text = filePath is null ? "Nota nueva" : "Archivo abierto";
+    }
+
+    public NoteWindowState? CaptureState()
+    {
+        if (string.IsNullOrWhiteSpace(_filePath))
+        {
+            return null;
+        }
+
+        var bounds = WindowState == WindowState.Normal
+            ? new Rect(Left, Top, Width, Height)
+            : RestoreBounds;
+
+        if (bounds.Width <= 0 || bounds.Height <= 0)
+        {
+            return null;
+        }
+
+        return new NoteWindowState
+        {
+            FilePath = _filePath,
+            Left = bounds.Left,
+            Top = bounds.Top,
+            Width = bounds.Width,
+            Height = bounds.Height,
+            IsTopmost = Topmost
+        };
+    }
+
+    private static bool IsValidVisiblePlacement(NoteWindowState state)
+    {
+        if (!double.IsFinite(state.Left) ||
+            !double.IsFinite(state.Top) ||
+            !double.IsFinite(state.Width) ||
+            !double.IsFinite(state.Height) ||
+            state.Width < 480 ||
+            state.Height < 360)
+        {
+            return false;
+        }
+
+        var virtualScreen = new Rect(
+            SystemParameters.VirtualScreenLeft,
+            SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth,
+            SystemParameters.VirtualScreenHeight);
+
+        var windowBounds = new Rect(state.Left, state.Top, state.Width, state.Height);
+        return virtualScreen.IntersectsWith(windowBounds);
+    }
+
+    private void OnPlacementChanged(object? sender, EventArgs e)
+    {
+        PlacementChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void EditorTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -56,6 +134,7 @@ public partial class NoteWindow : Window
     private void AlwaysOnTopCheckBox_Click(object sender, RoutedEventArgs e)
     {
         Topmost = AlwaysOnTopCheckBox.IsChecked == true;
+        OnPlacementChanged(this, EventArgs.Empty);
     }
 
     private async void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -104,6 +183,7 @@ public partial class NoteWindow : Window
             _isDirty = false;
             StatusText.Text = $"Guardado · {DateTime.Now:HH:mm}";
             UpdateWindowTitle();
+            OnPlacementChanged(this, EventArgs.Empty);
             return true;
         }
         catch (Exception exception)
@@ -118,48 +198,61 @@ public partial class NoteWindow : Window
         }
     }
 
-    private async void Window_Closing(object? sender, CancelEventArgs e)
+    public async Task<bool> RequestCloseAsync()
     {
-        if (_allowClose || !_isDirty)
+        if (_allowClose)
         {
-            return;
+            return true;
         }
-
-        e.Cancel = true;
 
         if (_isHandlingClose)
         {
-            return;
+            return false;
         }
 
         _isHandlingClose = true;
 
         try
         {
-            var result = MessageBox.Show(
-                this,
-                "Esta nota tiene cambios sin guardar. ¿Quieres guardarlos antes de cerrar?",
-                "Cambios sin guardar",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Warning);
-
-            if (result == MessageBoxResult.Cancel)
+            if (_isDirty)
             {
-                return;
-            }
+                var result = MessageBox.Show(
+                    this,
+                    "Esta nota tiene cambios sin guardar. ¿Quieres guardarlos antes de cerrar?",
+                    "Cambios sin guardar",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Warning);
 
-            if (result == MessageBoxResult.Yes && !await SaveNoteAsync())
-            {
-                return;
+                if (result == MessageBoxResult.Cancel)
+                {
+                    return false;
+                }
+
+                if (result == MessageBoxResult.Yes && !await SaveNoteAsync())
+                {
+                    return false;
+                }
             }
 
             _allowClose = true;
             Close();
+            return true;
         }
         finally
         {
             _isHandlingClose = false;
         }
+    }
+
+    private async void Window_Closing(object? sender, CancelEventArgs e)
+    {
+        if (_allowClose)
+        {
+            return;
+        }
+
+        e.Cancel = true;
+        await RequestCloseAsync();
     }
 
     private void UpdateWindowTitle()
