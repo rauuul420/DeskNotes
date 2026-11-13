@@ -48,6 +48,8 @@ Two alpha paths are tested in separate process runs:
 - Default: UpdateLayeredWindow with per-pixel alpha.
 - `--constant-alpha`: SetLayeredWindowAttributes(alpha=255), with ordinary GDI painting, matching the alpha strategy documented in Lively's DirectX path.
 
+The constant-alpha GDI variant is intentionally a static composition probe, not a model for animated widgets: Windows may cache the redirected layered-window image and not request WM_PAINT again after relative sibling moves. Lively's renderer is DirectX; this test isolates the constant-alpha layered-window path, not Lively's rendering backend.
+
 The executable embeds a compatibility manifest declaring Windows 8, 8.1 and Windows 10+ support. Microsoft requires Windows 8+ manifest compatibility for layered child windows. This prototype targets Windows 11 25H2; the manifest does not imply that earlier Windows versions have been tested.
 
 It does not attempt to repair or restart Explorer.
