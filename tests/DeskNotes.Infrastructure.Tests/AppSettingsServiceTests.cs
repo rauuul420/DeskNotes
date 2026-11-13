@@ -20,6 +20,7 @@ public sealed class AppSettingsServiceTests
             Assert.NotNull(settings);
             Assert.Empty(settings.OpenNotes);
             Assert.Empty(settings.SavedNotes);
+            Assert.Empty(settings.NoteWidgets);
         }
         finally
         {
@@ -99,7 +100,7 @@ public sealed class AppSettingsServiceTests
         try
         {
             var path = Path.Combine(directory, "settings.json");
-            await File.WriteAllTextAsync(path, """{"openNotes": null, "savedNotes": null}""");
+            await File.WriteAllTextAsync(path, """{"openNotes": null, "savedNotes": null, "noteWidgets": null}""");
             var service = new JsonAppSettingsService(path);
 
             var settings = await service.LoadAsync();
@@ -108,6 +109,49 @@ public sealed class AppSettingsServiceTests
             Assert.Empty(settings.OpenNotes);
             Assert.NotNull(settings.SavedNotes);
             Assert.Empty(settings.SavedNotes);
+            Assert.NotNull(settings.NoteWidgets);
+            Assert.Empty(settings.NoteWidgets);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SaveAsync_AndLoadAsync_PreserveDesktopWidgetPlacement()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var service = new JsonAppSettingsService(Path.Combine(directory, "settings.json"));
+            var settings = new AppSettings
+            {
+                NoteWidgets =
+                [
+                    new NoteWidgetState
+                    {
+                        FilePath = @"C:\\Notes\\ideas.md",
+                        Left = 145,
+                        Top = 95,
+                        Width = 360,
+                        Height = 280,
+                        IsTopmost = true
+                    }
+                ]
+            };
+
+            await service.SaveAsync(settings);
+            var loaded = await service.LoadAsync();
+
+            var widget = Assert.Single(loaded.NoteWidgets);
+            Assert.Equal(settings.NoteWidgets[0].FilePath, widget.FilePath);
+            Assert.Equal(145, widget.Left);
+            Assert.Equal(95, widget.Top);
+            Assert.Equal(360, widget.Width);
+            Assert.Equal(280, widget.Height);
+            Assert.True(widget.IsTopmost);
         }
         finally
         {
