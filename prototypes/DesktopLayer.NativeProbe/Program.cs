@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
@@ -12,7 +13,7 @@ internal static class Program
         ProbeLog.Initialize();
         ProbeLog.Write($"OS={Environment.OSVersion.Version}; Architecture={RuntimeInformation.ProcessArchitecture}; PointerSize={IntPtr.Size * 8}");
 
-        var dpiReady = DesktopNative.TryMatchExplorerDpi(out var dpiMessage);
+        var dpiReady = DesktopSurface.TryMatchExplorerDpi(out var dpiMessage);
         ProbeLog.Write(dpiMessage);
 
         Application.EnableVisualStyles();
@@ -95,7 +96,7 @@ internal sealed class ProbeForm : Form
 
         if (InvokeRequired)
         {
-            BeginInvoke(() => AppendLog(message));
+            BeginInvoke((Action)(() => AppendLog(message)));
             return;
         }
 
@@ -127,7 +128,7 @@ internal sealed class DesktopSurface : IDisposable
     private const uint GwHwndPrev = 3;
     private const uint ErrorClassAlreadyExists = 1410;
 
-    private static readonly WndProc WindowProcedure = DefWindowProc;
+    private static readonly WndProc WindowProcedure = NativeDefWindowProc;
     private static readonly string WindowClassName = "DeskNotes.NativeDesktopProbe.Window";
     private readonly Action<string> _log;
     private readonly IntPtr _hwnd;
@@ -346,6 +347,7 @@ internal sealed class DesktopSurface : IDisposable
         _log("HWND nativo destruido y recursos GDI liberados.");
     }
 
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     private delegate IntPtr WndProc(IntPtr hwnd, uint message, UIntPtr wParam, IntPtr lParam);
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -407,11 +409,6 @@ internal sealed class DesktopSurface : IDisposable
         public BITMAPINFOHEADER Header;
         public uint Color;
     }
-
-    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-    private delegate IntPtr WndProcDelegate(IntPtr hwnd, uint message, UIntPtr wParam, IntPtr lParam);
-
-    private static readonly WndProcDelegate DefWindowProc = NativeDefWindowProc;
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern IntPtr FindWindow(string? className, string? windowName);

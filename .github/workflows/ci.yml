@@ -6,11 +6,13 @@ on:
       - main
       - "feature/**"
       - "refactor/**"
+      - "prototype/**"
   pull_request:
     branches:
       - main
       - "feature/**"
       - "refactor/**"
+      - "prototype/**"
 
 permissions:
   contents: read
@@ -36,3 +38,6 @@ jobs:
 
       - name: Run tests
         run: dotnet test DeskNotes.slnx --configuration Release --no-build --verbosity normal
+
+      - name: Build native desktop-layer probe
+        run: dotnet build prototypes/DesktopLayer.NativeProbe/DesktopLayer.NativeProbe.csproj --configuration Release
