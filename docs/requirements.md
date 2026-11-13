@@ -119,8 +119,8 @@ El MVP podrá considerarse funcional cuando se compruebe que:
 10. La posición y el tamaño de las notas se restauran correctamente después de cerrar y volver a abrir la aplicación.
 11. Una nota guardada permanece en «Mis notas» después de cerrar su ventana y reiniciar DeskNotes.
 12. Quitar una entrada de «Mis notas» no elimina el archivo original.
-11. Los errores de acceso a archivos se comunican sin provocar un cierre inesperado.
-12. Los cambios no guardados no se descartan sin una decisión explícita del usuario.
+13. Los errores de acceso a archivos se comunican sin provocar un cierre inesperado.
+14. Los cambios no guardados no se descartan sin una decisión explícita del usuario.
 
 ## 8. Suposiciones y decisiones pendientes
 
