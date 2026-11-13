@@ -24,36 +24,36 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 
 **Objetivo:** disponer de una aplicación útil para crear, abrir y editar notas en ventanas flotantes.
 
-**Estado de implementación:** el flujo inicial de interfaz y almacenamiento está en `feature/note-window-mvp` y su compilación y 10 pruebas automatizadas pasan en Windows. La persistencia/restauración de ventanas está implementada en `feature/window-state-persistence`. GitHub Actions ha compilado la solución sin advertencias y ha pasado las 16 pruebas automatizadas. Falta probar manualmente el comportamiento visual y la restauración en Windows.
+**Estado de implementación:** el flujo de creación, apertura, edición y guardado TXT/Markdown está implementado en `feature/note-window-mvp`; la persistencia/restauración de ventanas está en `feature/window-state-persistence`; «Guardar como» está en `feature/save-as-workflow`. Estas ramas siguen en PR y no forman parte de `main`. Las pruebas de almacenamiento y configuración pasan en CI; la nueva separación testeable del guardado está en curso. Falta validar manualmente la interfaz y los escenarios de sesión en Windows.
 
 ### Gestión de notas y archivos
 
-- [ ] Crear una nota nueva.
-- [ ] Abrir archivos TXT.
-- [ ] Abrir archivos MD como texto editable.
-- [ ] Editar el contenido.
-- [ ] Guardar en el archivo original.
+- [x] Crear una nota nueva.
+- [x] Abrir archivos TXT.
+- [x] Abrir archivos MD como texto editable.
+- [x] Editar el contenido.
+- [x] Guardar en el archivo original.
 - [x] Guardar una nota en otra ubicación mediante «Guardar como».
 - [ ] Gestionar errores de lectura y escritura.
-- [ ] Avisar antes de descartar cambios sin guardar.
+- [x] Avisar antes de descartar cambios sin guardar.
 
 ### Ventanas
 
-- [ ] Mostrar cada nota en una ventana independiente.
-- [ ] Permitir mover las ventanas.
-- [ ] Permitir redimensionarlas.
-- [ ] Activar y desactivar la opción de mantener encima.
-- [ ] Recordar posición y tamaño.
-- [ ] Restaurar las ventanas al iniciar la aplicación.
+- [x] Mostrar cada nota en una ventana independiente.
+- [x] Permitir mover las ventanas.
+- [x] Permitir redimensionarlas.
+- [x] Activar y desactivar la opción de mantener encima.
+- [x] Recordar posición y tamaño.
+- [x] Restaurar las ventanas al iniciar la aplicación.
 
 ### Calidad
 
-- [ ] Incorporar pruebas automatizadas para la lógica que corresponda.
+- [x] Incorporar pruebas automatizadas para almacenamiento, configuración y lógica de guardado.
 - [ ] Verificar manualmente los criterios de aceptación del MVP.
-- [ ] Actualizar README y documentación.
+- [x] Actualizar README y documentación.
 - [ ] Preparar la primera versión 0.1.0.
 
-**Resultado esperado:** flujo básico de notas fiable y comprobado.
+**Resultado esperado:** flujo básico de notas fiable y comprobado. Las casillas de implementación no sustituyen la validación manual de los criterios de aceptación.
 
 ## Fase 2 — Experiencia de usuario (v0.2.x)
 
