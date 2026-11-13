@@ -8,11 +8,11 @@ DeskNotes busca ofrecer una forma sencilla de mantener a la vista notas y docume
 
 ## Estado del proyecto
 
-El proyecto está desarrollando su primer MVP. Ya existe un flujo de creación, apertura y edición en ventanas independientes, con almacenamiento TXT/Markdown y protección frente a cambios externos. La compilación Release y las pruebas automatizadas pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404. La persistencia/restauración de ventanas, «Guardar como» y la biblioteca persistente «Mis notas» están implementados en ramas de desarrollo. La coordinación del guardado está extraída a Core y cuenta con pruebas independientes de WPF.
+DeskNotes 0.1.0-alpha es la primera versión preliminar del MVP. Incluye creación, apertura y edición de archivos TXT/Markdown, biblioteca persistente «Mis notas», restauración de ventanas y widgets flotantes de escritorio. La compilación Release y las pruebas automatizadas pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404. La interfaz y los flujos principales también se han validado manualmente en Windows.
 
 Consulta la [hoja de ruta](docs/roadmap.md) para conocer las fases previstas y los [requisitos](docs/requirements.md) para ver el alcance funcional.
 
-## Funcionalidades previstas
+## Funcionalidades incluidas en la Alpha
 
 - Crear notas nuevas y abrir archivos TXT y Markdown.
 - Editar y guardar el contenido en archivos normales UTF-8.
@@ -29,7 +29,7 @@ Consulta la [hoja de ruta](docs/roadmap.md) para conocer las fases previstas y l
 - Mover y redimensionar widgets, abrir su nota en el editor y elegir si permanecen encima de otras ventanas.
 - Restaurar los widgets y su posición al iniciar DeskNotes.
 
-El guardado automático y la vista previa de Markdown todavía no están implementados. Los widgets de escritorio se muestran como ventanas compactas sin botón en la barra de tareas; no se incrustan todavía en la capa del escritorio detrás de los iconos. La biblioteca «Mis notas» guarda rutas y títulos en la configuración local; el contenido continúa en los archivos originales.
+El guardado automático y la vista previa de Markdown todavía no están implementados. Los widgets se muestran como ventanas compactas sin botón en la barra de tareas; no se incrustan en la capa del escritorio detrás de los iconos. La edición del contenido se realiza en el editor de la nota: el doble clic en la parte superior del widget y el botón «Editar» abren dicho editor. La edición directa dentro del widget queda aplazada. La biblioteca «Mis notas» guarda rutas y títulos en la configuración local; el contenido continúa en los archivos originales.
 
 Las funciones avanzadas —como vista previa Markdown, transparencia, temas, etiquetas, búsqueda y sincronización— se incorporarán después del MVP.
 
@@ -110,6 +110,10 @@ La compilación y la ejecución deben realizarse en Windows, ya que el proyecto 
 4. Cada funcionalidad debe tener criterios de aceptación y pruebas apropiadas.
 5. Los cambios deben ser pequeños, revisables y estar versionados.
 6. No se considerará terminada una tarea hasta comprobar su funcionamiento.
+
+## Versión
+
+**0.1.0-alpha** — primera versión preliminar para pruebas. Consulta [CHANGELOG.md](CHANGELOG.md) para conocer las novedades y limitaciones.
 
 ## Estado de la documentación
 
