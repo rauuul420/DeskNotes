@@ -44,14 +44,34 @@ jobs:
       - name: Build NSIS installer
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force artifacts/installer | Out-Null
-          & "$env:ProgramFiles(x86)\NSIS\makensis.exe" /DAPP_VERSION=0.1.0-alpha /DAPP_VERSION_NUM=0.1.0.0 /DPUBLISH_DIR="$PWD\artifacts\publish" /DOUTPUT_DIR="$PWD\artifacts\installer" packaging/nsis/DeskNotes.nsi
-          if ($LASTEXITCODE -ne 0) { throw "NSIS ha fallado con exit code $LASTEXITCODE." }
+          $outputDir = Join-Path $PWD "artifacts/installer"
+          $publishDir = Join-Path $PWD "artifacts/publish"
+          $nsisPath = Join-Path ${env:ProgramFiles(x86)} "NSIS/makensis.exe"
+
+          New-Item -ItemType Directory -Force $outputDir | Out-Null
+
+          if (-not (Test-Path $nsisPath)) {
+            throw "No se ha encontrado makensis.exe en: $nsisPath"
+          }
+
+          $nsisArgs = @(
+            "/DAPP_VERSION=0.1.0-alpha",
+            "/DAPP_VERSION_NUM=0.1.0.0",
+            "/DAPP_FILE_VERSION=0.1.0",
+            "/DPUBLISH_DIR=$publishDir",
+            "/DOUTPUT_DIR=$outputDir",
+            "packaging/nsis/DeskNotes.nsi"
+          )
+
+          & $nsisPath @nsisArgs
+          if ($LASTEXITCODE -ne 0) {
+            throw "NSIS ha fallado con exit code $LASTEXITCODE."
+          }
 
       - name: Upload installer
         uses: actions/upload-artifact@v6
         with:
-          name: desknotes-setup-win-x64
-          path: artifacts/installer/desknotes-setupe.exe
+          name: DeskNotes-Setup-0.1.0-win-x64
+          path: artifacts/installer/DeskNotes-Setup-0.1.0.exe
           if-no-files-found: error
           retention-days: 14
