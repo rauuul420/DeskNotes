@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows.Forms;
 
 namespace DeskNotes.DesktopLayer.NativeProbe;
@@ -108,11 +107,12 @@ internal sealed class DesktopSurface : IDisposable
 {
     private const int Width = 440;
     private const int Height = 230;
+    private const int GwlStyle = -16;
     private const int GwlExStyle = -20;
-    private const long WsExLayered = 0x00080000L;
-    private const long WsExToolWindow = 0x00000080L;
-    private const long WsExNoActivate = 0x08000000L;
-    private const long WsExNoRedirectionBitmap = 0x00200000L;
+    private const uint WsExLayered = 0x00080000;
+    private const uint WsExToolWindow = 0x00000080;
+    private const uint WsExNoActivate = 0x08000000;
+    private const uint WsExNoRedirectionBitmap = 0x00200000;
     private const uint WsChild = 0x40000000;
     private const uint WsVisible = 0x10000000;
     private const uint SwpNoActivate = 0x0010;
@@ -157,7 +157,7 @@ internal sealed class DesktopSurface : IDisposable
         _ = SendMessageTimeout(progman, DesktopWorkerMessage,
             new IntPtr(0x0D), new IntPtr(0x01), SmtoAbortIfHung, 1000, out _);
 
-        var progmanExStyle = GetWindowLongPtr(progman, GwlExStyle).ToInt64();
+        var progmanExStyle = unchecked((uint)GetWindowLongPtr(progman, GwlExStyle).ToInt64());
         if ((progmanExStyle & WsExNoRedirectionBitmap) == 0)
             throw NativeFailure("Progman no presenta WS_EX_NOREDIRECTIONBITMAP. No se ha demostrado la ruta moderna esperada.");
 
@@ -253,10 +253,20 @@ internal sealed class DesktopSurface : IDisposable
             var rect = new RECT();
             _ = GetWindowRect(hwnd, out rect);
 
-            log($"Progman={Format(progman)}; ShellView={Format(shellView)}; Widget={Format(hwnd)}");
+            _ = GetWindowThreadProcessId(progman, out var progmanPid);
+            _ = GetWindowThreadProcessId(shellView, out var shellViewPid);
+            _ = GetWindowThreadProcessId(hwnd, out var widgetPid);
+            log($"Progman={Format(progman)} pid={progmanPid}; ShellView={Format(shellView)} pid={shellViewPid}; Widget={Format(hwnd)} pid={widgetPid}");
             log($"Parent(widget)={Format(parent)}; previousZ={Format(previous)}; nextZ={Format(next)}");
             log($"Parent(widget)==Progman: {parent == progman}; previousZ==ShellView: {previous == shellView}");
-            log($"Progman exStyle=0x{progmanExStyle:X}; widget exStyle=0x{GetWindowLongPtr(hwnd, GwlExStyle).ToInt64():X}");
+            log($"Progman exStyle=0x{progmanExStyle:X}; widget style=0x{GetWindowLongPtr(hwnd, GwlStyle).ToInt64():X}; widget exStyle=0x{GetWindowLongPtr(hwnd, GwlExStyle).ToInt64():X}");
+            var childAfter = IntPtr.Zero;
+            while ((childAfter = FindWindowEx(progman, childAfter, null, null)) != IntPtr.Zero)
+            {
+                var className = new StringBuilder(256);
+                _ = GetClassName(childAfter, className, className.Capacity);
+                log($"Progman child z-order: hwnd={Format(childAfter)} class={className}");
+            }
             log($"Progman client={clientWidth}x{clientHeight}; widget rect=({rect.Left},{rect.Top},{rect.Right},{rect.Bottom})");
             log($"DPI Progman=0x{shellDpi.ToInt64():X}; DPI thread=0x{threadDpi.ToInt64():X}; equal={AreDpiAwarenessContextsEqual(shellDpi, threadDpi)}");
             log("No se ha cambiado el Z-order de WorkerW.");
@@ -423,6 +433,12 @@ internal sealed class DesktopSurface : IDisposable
     private static extern IntPtr GetWindow(IntPtr hwnd, uint command);
 
     [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern int GetClassName(IntPtr hwnd, StringBuilder className, int maxCount);
+
+    [DllImport("user32.dll", SetLastError = true)]
     private static extern bool GetClientRect(IntPtr hwnd, out RECT rect);
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -465,7 +481,7 @@ internal sealed class DesktopSurface : IDisposable
     private static extern ushort RegisterClassEx(ref WNDCLASSEX windowClass);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern IntPtr CreateWindowEx(long extendedStyle, string className, string windowName,
+    private static extern IntPtr CreateWindowEx(uint extendedStyle, string className, string windowName,
         uint style, int x, int y, int width, int height, IntPtr parent, IntPtr menu, IntPtr instance, IntPtr parameter);
 
     [DllImport("user32.dll", EntryPoint = "DefWindowProcW", SetLastError = true)]
