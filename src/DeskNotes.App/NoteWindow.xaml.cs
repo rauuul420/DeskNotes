@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using DeskNotes.Core.Interfaces;
+using DeskNotes.Core.Services;
 using DeskNotes.Core.Models;
 using Microsoft.Win32;
 
@@ -14,7 +14,7 @@ namespace DeskNotes.App;
 public partial class NoteWindow : Window
 {
     private readonly Note _note;
-    private readonly INoteFileService _noteFileService;
+    private readonly NoteSaveService _noteSaveService;
     private string? _filePath;
     private bool _isInitializing = true;
     private string _savedContent = string.Empty;
@@ -29,17 +29,17 @@ public partial class NoteWindow : Window
     public NoteWindow(
         Note note,
         string? filePath,
-        INoteFileService noteFileService,
+        NoteSaveService noteSaveService,
         NoteWindowState? savedState = null)
     {
         ArgumentNullException.ThrowIfNull(note);
-        ArgumentNullException.ThrowIfNull(noteFileService);
+        ArgumentNullException.ThrowIfNull(noteSaveService);
 
         InitializeComponent();
 
         _note = note;
         _filePath = filePath;
-        _noteFileService = noteFileService;
+        _noteSaveService = noteSaveService;
         _savedContent = note.Content;
 
         EditorTextBox.Text = _savedContent;
@@ -202,32 +202,7 @@ public partial class NoteWindow : Window
         {
             _note.Content = EditorTextBox.Text;
 
-            var isDifferentDestination = !string.IsNullOrWhiteSpace(_filePath) &&
-                !string.Equals(_filePath, destinationPath, StringComparison.OrdinalIgnoreCase);
-
-            if (isDifferentDestination)
-            {
-                // A Save As operation creates a new file identity. Reusing the
-                // original file fingerprint would incorrectly report a conflict
-                // against the destination file.
-                var copy = new Note
-                {
-                    Title = System.IO.Path.GetFileNameWithoutExtension(destinationPath),
-                    Content = _note.Content,
-                    CreatedAt = _note.CreatedAt,
-                    UpdatedAt = _note.UpdatedAt
-                };
-
-                await _noteFileService.SaveAsync(copy, destinationPath);
-
-                _note.SourceLastWriteTimeUtc = copy.SourceLastWriteTimeUtc;
-                _note.SourceLength = copy.SourceLength;
-                _note.SourceSha256 = copy.SourceSha256;
-            }
-            else
-            {
-                await _noteFileService.SaveAsync(_note, destinationPath);
-            }
+            await _noteSaveService.SaveAsync(_note, _filePath, destinationPath);
 
             // Keep the current document path unchanged until the write succeeds.
             _filePath = destinationPath;
