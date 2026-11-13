@@ -25,8 +25,11 @@ Consulta la [hoja de ruta](docs/roadmap.md) para conocer las fases previstas y l
 - Recordar las posiciones y tamaños de las ventanas.
 - Restaurar las notas abiertas en el siguiente inicio.
 - Mantener una biblioteca «Mis notas» independiente de las ventanas abiertas.
+- Crear widgets flotantes de escritorio con título y vista previa del contenido de una nota.
+- Mover y redimensionar widgets, abrir su nota en el editor y elegir si permanecen encima de otras ventanas.
+- Restaurar los widgets y su posición al iniciar DeskNotes.
 
-El guardado automático y la vista previa de Markdown todavía no están implementados. La biblioteca «Mis notas» guarda rutas y títulos en la configuración local; el contenido continúa en los archivos originales.
+El guardado automático y la vista previa de Markdown todavía no están implementados. Los widgets de escritorio se muestran como ventanas compactas sin botón en la barra de tareas; no se incrustan todavía en la capa del escritorio detrás de los iconos. La biblioteca «Mis notas» guarda rutas y títulos en la configuración local; el contenido continúa en los archivos originales.
 
 Las funciones avanzadas —como vista previa Markdown, transparencia, temas, etiquetas, búsqueda y sincronización— se incorporarán después del MVP.
 
