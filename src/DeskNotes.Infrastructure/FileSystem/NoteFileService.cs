@@ -17,15 +17,34 @@ public sealed class NoteFileService : INoteFileService
         CancellationToken cancellationToken = default)
     {
         var fullPath = ValidateAndGetFullPath(filePath);
+        var sourceInfo = new FileInfo(fullPath);
 
+        if (!sourceInfo.Exists)
+        {
+            throw new FileNotFoundException("The note file could not be found.", fullPath);
+        }
+
+        var lastWriteTimeUtc = sourceInfo.LastWriteTimeUtc;
+        var sourceLength = sourceInfo.Length;
         var content = await File.ReadAllTextAsync(fullPath, cancellationToken);
+
+        sourceInfo.Refresh();
+
+        if (!sourceInfo.Exists ||
+            sourceInfo.LastWriteTimeUtc != lastWriteTimeUtc ||
+            sourceInfo.Length != sourceLength)
+        {
+            throw new IOException("The file changed while DeskNotes was opening it. Please open it again.");
+        }
 
         return new Note
         {
             Title = Path.GetFileNameWithoutExtension(fullPath),
             Content = content,
             CreatedAt = File.GetCreationTimeUtc(fullPath),
-            UpdatedAt = File.GetLastWriteTimeUtc(fullPath)
+            UpdatedAt = lastWriteTimeUtc,
+            SourceLastWriteTimeUtc = lastWriteTimeUtc,
+            SourceLength = sourceLength
         };
     }
 
@@ -53,7 +72,27 @@ public sealed class NoteFileService : INoteFileService
                 Utf8WithoutBom,
                 cancellationToken);
 
+            if (note.SourceLastWriteTimeUtc is not null && note.SourceLength is not null)
+            {
+                var currentSource = new FileInfo(fullPath);
+                currentSource.Refresh();
+
+                if (!currentSource.Exists ||
+                    currentSource.LastWriteTimeUtc != note.SourceLastWriteTimeUtc.Value.UtcDateTime ||
+                    currentSource.Length != note.SourceLength.Value)
+                {
+                    throw new IOException(
+                        "This file has changed outside DeskNotes. Your edits have not been saved. " +
+                        "Reopen the file and review the latest version before trying again.");
+                }
+            }
+
             File.Move(temporaryPath, fullPath, overwrite: true);
+
+            var savedFile = new FileInfo(fullPath);
+            note.SourceLastWriteTimeUtc = savedFile.LastWriteTimeUtc;
+            note.SourceLength = savedFile.Length;
+            note.UpdatedAt = DateTimeOffset.UtcNow;
         }
         finally
         {
