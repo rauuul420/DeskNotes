@@ -1,7 +1,7 @@
 Unicode true
 !include "MUI2.nsh"
 !include "StrFunc.nsh"
-!insertmacro STR_FUNC StrStr
+${StrStr}
 
 !ifndef APP_VERSION
   !define APP_VERSION "0.1.0-alpha"
@@ -41,6 +41,7 @@ VIAddVersionKey "FileVersion" "${APP_VERSION}"
 !define MUI_FINISHPAGE_RUN_TEXT "Abrir DeskNotes"
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_UNPAGE_CONFIRM
