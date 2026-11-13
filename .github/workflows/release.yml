@@ -2,6 +2,8 @@ name: Publish DeskNotes release
 
 on:
   push:
+    branches:
+      - "automation/release-pipeline"
     tags:
       - "v*"
   pull_request:
