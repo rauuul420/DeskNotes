@@ -37,7 +37,7 @@ public sealed class NoteSaveServiceTests
         Assert.Equal(originalTimestamp, fileService.SavedNote.CreatedAt);
         Assert.Equal(Path.GetFullPath(destinationPath), fileService.SavedPath);
         Assert.Equal("new-hash", note.SourceSha256);
-        Assert.Equal(Encoding.UTF8.GetByteCount(note.Content), note.SourceLength);
+        Assert.Equal((long)Encoding.UTF8.GetByteCount(note.Content), note.SourceLength!.Value);
         Assert.Equal(fileService.SavedNote.SourceLastWriteTimeUtc, note.SourceLastWriteTimeUtc);
     }
 
