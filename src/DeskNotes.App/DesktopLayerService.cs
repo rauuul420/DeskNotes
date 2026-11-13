@@ -25,6 +25,7 @@ internal sealed class DesktopLayerService : IDisposable
     private const uint PositionFlags = SwpNoSize | SwpNoMove | SwpNoActivate | SwpNoOwnerZOrder | SwpNoSendChanging;
     private const int GwlStyle = -16;
     private const int GwlExStyle = -20;
+    private const long WsPopup = unchecked((long)0x80000000);
     private const long WsChild = 0x40000000;
     private const long WsExToolWindow = 0x00000080;
     private const long WsExNoRedirectionBitmap = 0x00200000;
