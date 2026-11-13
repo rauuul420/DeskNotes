@@ -490,9 +490,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            var settings = CreateCurrentSettings();
-            settings.OpenNotes = openNoteStates;
-            await _settingsService.SaveAsync(settings);
+            await _settingsService.SaveAsync(CreateCurrentSettings());
         }
         catch (Exception exception)
         {
@@ -541,7 +539,9 @@ public partial class MainWindow : Window
 
         try
         {
-            await _settingsService.SaveAsync(CreateCurrentSettings());
+            var settings = CreateCurrentSettings();
+            settings.OpenNotes = openNoteStates;
+            await _settingsService.SaveAsync(settings);
         }
         catch (Exception exception)
         {
