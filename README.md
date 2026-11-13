@@ -121,6 +121,17 @@ $nsisPath = Join-Path ${env:ProgramFiles(x86)} "NSIS/makensis.exe"
 
 El instalador se genera en `artifacts/installer/DeskNotes-Setup-0.1.0.exe`. La compilación automatizada se encuentra en `.github/workflows/installer.yml` y publica el instalador como artefacto de GitHub Actions.
 
+Para publicar una versión en GitHub Releases, crea y sube un tag sobre el commit de `main` que quieras distribuir. El workflow `.github/workflows/release.yml` compila la aplicación, genera el instalador y lo adjunta automáticamente a la Release:
+
+```powershell
+git switch main
+git pull origin main
+git tag -a v0.1.0-alpha -m "DeskNotes 0.1.0-alpha"
+git push origin v0.1.0-alpha
+```
+
+Los tags con sufijo (por ejemplo, `-alpha`) generan una prerelease. El instalador sigue siendo framework-dependent y requiere .NET 10 Desktop Runtime x64.
+
 ## Principios del proyecto
 
 1. Los archivos del usuario son la fuente original del contenido.
