@@ -1,43 +1,44 @@
 # Desktop widget layer
 
-DeskNotes optionally positions note widgets in the desktop Z-order band between the wallpaper and desktop icons.
+DeskNotes provides an experimental desktop layer for placing interactive note widgets between the wallpaper and the desktop icons.
 
-## Window architecture
+## Windows 11 24H2 / 25H2 implementation
 
-- Each widget remains an independent top-level WPF window with its original native window style. The implementation verifies that its HWND is not `WS_CHILD` and is its own `GA_ROOT`; it does not assume that WPF must use `WS_POPUP`.
-- Widgets are never reparented to `Progman` or `WorkerW`; the service does not call `SetParent` and does not add `WS_CHILD`.
-- A hidden, disabled helper popup provides the reference point for Z-order placement, following the strategy used by Rainmeter.
-- Automatic Z-order changes use `SetWindowPos` with `SWP_NOACTIVATE`; they must not steal keyboard focus.
-- A foreground WinEvent hook and a lightweight dispatcher poll detect desktop transitions and Explorer HWND recreation. The service rediscovers `SHELLDLL_DefView` and its root host after Explorer restarts.
+The first supported path targets Windows 11 build 26100 or later (24H2 and 25H2). It uses the modern Explorer desktop hierarchy observed on these releases:
 
-## Windows compatibility and limitations
+- Locate the top-level `Progman` window.
+- Ask Explorer to initialize its desktop WorkerW band with message `0x052C` (modern parameters first).
+- Require `SHELLDLL_DefView` to be a direct child of `Progman`.
+- Locate the wallpaper `WorkerW` as a direct child of `Progman`, when present.
+- Convert each WPF widget HWND from a top-level popup to a child window and parent it directly to `Progman`.
+- Place the widget immediately below `SHELLDLL_DefView`, then place the wallpaper `WorkerW` below the widget.
 
-Explorer's desktop window hierarchy and message `0x052C` are implementation details, not a supported public Windows API. Windows 10 and Windows 11 builds may expose different host hierarchies. The service fails closed when it cannot identify a desktop host; it does not attempt to mutate widget parentage or styles to force an attachment.
+This is a reverse-engineered Explorer integration, not a supported Windows API. The feature must remain opt-in and experimental.
 
-The helper-window strategy follows Rainmeter's public source implementation, but DeskNotes is a WPF application and still requires validation on actual Windows installations. The current implementation is not declared compatible with every Windows 10/11 build until the manual matrix below passes.
+## WPF rendering and interaction
 
-## Interaction and focus
+- Widget windows use `AllowsTransparency=True`, so WPF already owns the layered-window rendering path.
+- The service deliberately does not call `SetLayeredWindowAttributes`: doing so can conflict with WPF's per-pixel layered rendering.
+- The implementation preserves the original style, extended style and parent, and restores them when the feature is disabled or the application exits.
+- The widget remains a WPF window, but changing its HWND into a child window can affect WPF activation, keyboard focus, drag/resize and input routing. These behaviors require hands-on validation on Windows 11 25H2 before merging.
 
-- A user click may explicitly activate a widget; automatic maintenance never calls `Activate`, `BringWindowToTop` or `SetForegroundWindow`.
-- A foreground event caused by one of DeskNotes' own widgets preserves the current desktop-band state instead of interpreting it as the desktop being covered.
-- The pin/topmost action is temporarily unavailable while desktop-layer mode is enabled. Its previous value is restored when the option is disabled.
-- Disabling the feature returns each widget to the ordinary non-topmost window band and restores its original extended style.
+## Compatibility scope
 
-## Recovery and monitor changes
+- Windows 11 24H2 / 25H2: modern `Progman` path (build 26100+), experimental.
+- Earlier Windows versions: deliberately not enabled yet. A separate legacy `WorkerW` strategy can be added after the modern path is validated.
+- If the expected Explorer hierarchy is not found, activation fails closed and widgets remain ordinary windows.
+- Explorer's hierarchy and message `0x052C` are undocumented implementation details and may change in future cumulative updates.
 
-The service periodically rediscovers Explorer's desktop host. If Explorer restarts and recreates its HWNDs, the helper is repositioned against the new host. Widget HWNDs remain top-level and retain their screen coordinates, so monitor topology changes do not require parent-coordinate conversion. The desktop poll also re-evaluates the current host after display changes.
+## Manual validation required on Windows 11 25H2
 
-## Automated and manual validation
+1. Enable and disable the option with one and multiple widgets.
+2. Confirm icons remain visible, clickable and above the widgets.
+3. Confirm widget buttons, double-click-to-edit, scrolling, drag and resize work.
+4. Confirm keyboard focus enters the widget and does not get trapped or lost.
+5. Open normal applications and verify they cover the widgets.
+6. Verify the widgets do not appear in Alt+Tab or the taskbar unexpectedly.
+7. Restart Explorer while enabled and verify no orphaned or destroyed widget windows remain.
+8. Verify disabling restores normal top-level windows and the previous topmost setting.
+9. Test mixed-DPI and multiple-monitor arrangements, including monitors left/above the primary display.
 
-The cross-platform tests cover the pure foreground/focus state policy. They do not simulate Explorer or prove native Z-order behavior.
-
-Before merging or releasing, test on physical Windows 10 and Windows 11 systems, including Windows 11 24H2 or later:
-
-1. Enable and disable the option with multiple widgets open.
-2. Verify desktop icons remain visible and clickable above widgets.
-3. Click widget controls; drag and resize; verify text rendering and transparency.
-4. Click a widget while the desktop is visible and confirm it remains visible and receives keyboard focus where applicable.
-5. Switch monitors/resolutions, including negative virtual-screen coordinates.
-6. Restart Explorer while the option is enabled and verify recovery without orphaned or hidden widgets.
-7. Open and switch between ordinary applications; verify they cover desktop-layer widgets and automatic Z-order maintenance never steals focus.
-8. Verify normal mode and the per-widget topmost action work after disabling the feature.
+Automated unit tests cannot validate Explorer's native Z-order, DWM composition or WPF child-window input behavior. Do not merge or publish this feature as stable until the manual checks pass.
