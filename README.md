@@ -8,7 +8,7 @@ DeskNotes busca ofrecer una forma sencilla de mantener a la vista notas y docume
 
 ## Estado del proyecto
 
-El proyecto está desarrollando su primer MVP. Ya existe una base de almacenamiento TXT/Markdown con pruebas y se está incorporando el flujo de creación, apertura y edición en ventanas independientes. La compilación Release y las 10 pruebas automatizadas pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404. Falta la comprobación manual de la interfaz en un escritorio Windows.
+El proyecto está desarrollando su primer MVP. Ya existe un flujo de creación, apertura y edición en ventanas independientes, con almacenamiento TXT/Markdown y protección frente a cambios externos. La compilación Release y las 10 pruebas de la primera entrega pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404. La persistencia y restauración de ventanas está en desarrollo en una segunda rama.
 
 Consulta la [hoja de ruta](docs/roadmap.md) para conocer las fases previstas y los [requisitos](docs/requirements.md) para ver el alcance funcional.
 
@@ -20,8 +20,10 @@ Consulta la [hoja de ruta](docs/roadmap.md) para conocer las fases previstas y l
 - Avisar de cambios sin guardar antes de cerrar.
 - Detectar modificaciones externas del archivo antes de sobrescribirlo.
 - Activar o desactivar la opción de mantener una nota siempre visible.
+- Recordar las posiciones y tamaños de las ventanas.
+- Restaurar las notas abiertas en el siguiente inicio (en desarrollo).
 
-La restauración de ventanas, el guardado automático y la vista previa de Markdown todavía no están implementados.
+El guardado automático y la vista previa de Markdown todavía no están implementados.
 
 Las funciones avanzadas —como vista previa Markdown, transparencia, temas, etiquetas, búsqueda y sincronización— se incorporarán después del MVP.
 
