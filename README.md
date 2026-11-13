@@ -21,7 +21,7 @@ Consulta la [hoja de ruta](docs/roadmap.md) para conocer las fases previstas y l
 - Detectar modificaciones externas del archivo antes de sobrescribirlo.
 - Activar o desactivar la opción de mantener una nota siempre visible.
 - Recordar las posiciones y tamaños de las ventanas.
-- Restaurar las notas abiertas en el siguiente inicio (en desarrollo).
+- Restaurar las notas abiertas en el siguiente inicio.
 
 El guardado automático y la vista previa de Markdown todavía no están implementados.
 
