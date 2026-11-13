@@ -1,3 +1,8 @@
+param(
+    [ValidatePattern('^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$')]
+    [string]$Version = "0.1.0-alpha"
+)
+
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
@@ -8,13 +13,18 @@ if (Test-Path $output) {
     Remove-Item $output -Recurse -Force
 }
 
-dotnet publish $project `
-    --configuration Release `
-    --runtime win-x64 `
-    --self-contained false `
-    -p:PublishSingleFile=true `
-    -p:Version=0.1.0-alpha `
-    --output $output
+$publishArgs = @(
+    $project,
+    "--configuration", "Release",
+    "--runtime", "win-x64",
+    "--self-contained", "false",
+    "-p:PublishSingleFile=true",
+    "-p:IncludeNativeLibrariesForSelfExtract=true",
+    "-p:Version=$Version",
+    "--output", $output
+)
+
+& dotnet publish @publishArgs
 
 if ($LASTEXITCODE -ne 0) {
     throw "La publicación de DeskNotes ha fallado (exit code $LASTEXITCODE)."
@@ -26,4 +36,5 @@ if (-not (Test-Path $exe)) {
 }
 
 Write-Host "Publicación completada: $exe"
+Write-Host "Versión: $Version"
 Write-Host "Framework-dependent: requiere Microsoft .NET 10 Desktop Runtime x64."
