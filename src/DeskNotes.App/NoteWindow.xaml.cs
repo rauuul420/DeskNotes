@@ -17,6 +17,7 @@ public partial class NoteWindow : Window
     private readonly INoteFileService _noteFileService;
     private string? _filePath;
     private bool _isInitializing = true;
+    private string _savedContent = string.Empty;
     private bool _isDirty;
     private bool _isHandlingClose;
     private bool _allowClose;
@@ -31,8 +32,9 @@ public partial class NoteWindow : Window
         _note = note;
         _filePath = filePath;
         _noteFileService = noteFileService;
+        _savedContent = note.Content;
 
-        EditorTextBox.Text = note.Content;
+        EditorTextBox.Text = _savedContent;
         _isInitializing = false;
         UpdateWindowTitle();
         StatusText.Text = filePath is null ? "Nota nueva" : "Archivo abierto";
@@ -46,8 +48,8 @@ public partial class NoteWindow : Window
         }
 
         _note.Content = EditorTextBox.Text;
-        _isDirty = true;
-        StatusText.Text = "Cambios sin guardar";
+        _isDirty = !string.Equals(EditorTextBox.Text, _savedContent, StringComparison.Ordinal);
+        StatusText.Text = _isDirty ? "Cambios sin guardar" : "Sin cambios";
         UpdateWindowTitle();
     }
 
@@ -98,6 +100,7 @@ public partial class NoteWindow : Window
             await _noteFileService.SaveAsync(_note, _filePath);
             _note.Title = System.IO.Path.GetFileNameWithoutExtension(_filePath);
             _note.UpdatedAt = DateTimeOffset.UtcNow;
+            _savedContent = EditorTextBox.Text;
             _isDirty = false;
             StatusText.Text = $"Guardado · {DateTime.Now:HH:mm}";
             UpdateWindowTitle();
