@@ -63,7 +63,7 @@ Se inspeccionó Lively en el commit [25a0a5f4ed1988ff42117d3a17feb321062237fe](h
 - **Legacy:** aloja el wallpaper bajo un WorkerW seleccionado mediante la enumeración del shell.
 - **Raised desktop / layered shell view:** detecta WS_EX_NOREDIRECTIONBITMAP en Progman, busca SHELLDLL_DefView y un WorkerW hijo directo de Progman. Inserta su ventana layered como hijo de Progman, inmediatamente detrás de SHELLDLL_DefView, y fuerza WorkerW al fondo del orden Z.
 
-Lively aplica WS_CHILD y WS_EX_LAYERED antes del attach. Para su renderer DirectX utiliza SetLayeredWindowAttributes(alpha=255); esto es distinto de UpdateLayeredWindow con alpha per-pixel. DeskNotes compara ambos caminos en HWNDs recreados, no alterna los mecanismos sobre la misma ventana.
+Lively aplica WS_CHILD y WS_EX_LAYERED antes del attach. Para su renderer DirectX utiliza SetLayeredWindowAttributes(alpha=255); esto es distinto de UpdateLayeredWindow con alpha per-pixel. DeskNotes compara ambos caminos en HWNDs recreados, no alterna los mecanismos sobre la misma ventana. La variante alpha constante del NativeProbe usa pintura GDI y es solo una prueba estática de composición: Windows puede conservar la imagen redirigida y no solicitar WM_PAINT después de movimientos relativos entre hermanos. No debe extrapolarse como backend de widgets animados ni como reproducción del renderer DirectX de Lively.
 
 La detección mediante WS_EX_NOREDIRECTIONBITMAP es más sólida que inferir la topología únicamente por la versión de Windows. El mensaje 0x052C y la jerarquía concreta siguen siendo detalles internos del shell, no contratos públicos estables.
 
