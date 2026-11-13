@@ -1,7 +1,7 @@
 # Arquitectura técnica
 
 **Proyecto:** DeskNotes  
-**Estado:** diseño inicial  
+**Estado:** implementación del MVP en curso  
 **Plataforma objetivo:** Windows 11  
 **Framework:** .NET 10  
 **Interfaz:** WPF
@@ -59,6 +59,7 @@ DeskNotes/
 │   └── DeskNotes.Infrastructure/
 │       └── DeskNotes.Infrastructure.csproj
 └── tests/
+    ├── DeskNotes.Core.Tests/
     └── DeskNotes.Infrastructure.Tests/
 ```
 
@@ -189,11 +190,11 @@ DeskNotes.Infrastructure.Tests
         └──> DeskNotes.Core
 ```
 
-El proyecto `DeskNotes.Infrastructure.Tests` ya forma parte de la solución y contiene pruebas del servicio de archivos. Las pruebas de Core y de interfaz se añadirán cuando existan reglas y comportamientos que justifiquen cubrirlas.
+Los proyectos `DeskNotes.Core.Tests` y `DeskNotes.Infrastructure.Tests` forman parte de la solución. Core cubre reglas y coordinación de casos de uso sin WPF; Infrastructure cubre lectura, escritura y persistencia. La interfaz aún requiere validación manual en Windows.
 
 ## 9. Pruebas
 
-- Core: pruebas unitarias de modelos y reglas.
+- Core: pruebas unitarias de modelos, reglas y coordinación de casos de uso.
 - Infrastructure: pruebas de lectura, escritura, rutas y errores usando ubicaciones temporales.
 - App: comprobaciones de integración y pruebas manuales de la interfaz; se evaluará automatización de UI si aporta valor.
 
