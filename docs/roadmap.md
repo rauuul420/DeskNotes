@@ -33,6 +33,7 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 - [ ] Abrir archivos MD como texto editable.
 - [ ] Editar el contenido.
 - [ ] Guardar en el archivo original.
+- [x] Guardar una nota en otra ubicación mediante «Guardar como».
 - [ ] Gestionar errores de lectura y escritura.
 - [ ] Avisar antes de descartar cambios sin guardar.
 
