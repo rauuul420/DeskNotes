@@ -1,8 +1,8 @@
 # Hoja de ruta
 
 **Proyecto:** DeskNotes  
-**Estado:** MVP en desarrollo  
-**Versión actual prevista:** 0.1.0
+**Estado:** Alpha 0.1.0 publicada como versión preliminar  
+**Versión actual:** 0.1.0-alpha
 
 Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objetivos, no fechas comprometidas. Se podrán ajustar cuando aparezcan dificultades técnicas o cambien las prioridades.
 
@@ -24,7 +24,7 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 
 **Objetivo:** disponer de una aplicación útil para crear, abrir y editar notas en ventanas flotantes.
 
-**Estado de implementación:** el flujo de creación, apertura, edición y guardado TXT/Markdown está implementado en `feature/note-window-mvp`; la persistencia/restauración de ventanas está en `feature/window-state-persistence`; «Guardar como» está en `feature/save-as-workflow`. Estas ramas siguen en PR y no forman parte de `main`. Las pruebas de almacenamiento y configuración pasan en CI; la separación testeable del guardado está implementada y la biblioteca persistente «Mis notas» está en desarrollo. Falta validar manualmente la interfaz y los escenarios de sesión en Windows.
+**Estado de implementación:** completado e integrado en `main` mediante el PR #8. La Alpha 0.1.0 incorpora el flujo de notas TXT/Markdown, «Guardar como», biblioteca «Mis notas», persistencia de ventanas y widgets flotantes. La compilación, las pruebas automatizadas y la validación manual de los flujos principales se han completado.
 
 ### Gestión de notas y archivos
 
@@ -37,7 +37,7 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 - [x] Mantener una biblioteca de archivos guardados independiente de las ventanas abiertas.
 - [x] Volver a abrir una nota desde «Mis notas».
 - [x] Quitar una entrada de la biblioteca sin eliminar el archivo original.
-- [ ] Gestionar errores de lectura y escritura.
+- [ ] Mejorar la gestión y presentación de errores de lectura y escritura.
 - [x] Avisar antes de descartar cambios sin guardar.
 
 ### Ventanas
@@ -52,11 +52,11 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 ### Calidad
 
 - [x] Incorporar pruebas automatizadas para almacenamiento, configuración y lógica de guardado.
-- [ ] Verificar manualmente los criterios de aceptación del MVP.
-- [x] Actualizar README y documentación.
-- [ ] Preparar la primera versión 0.1.0.
+- [x] Verificar manualmente los criterios principales de aceptación del MVP en Windows.
+- [x] Actualizar README, changelog y hoja de ruta.
+- [x] Preparar y publicar la primera versión preliminar 0.1.0-alpha.
 
-**Resultado esperado:** flujo básico de notas fiable y comprobado. Las casillas de implementación no sustituyen la validación manual de los criterios de aceptación.
+**Resultado esperado:** flujo básico de notas fiable y comprobado. La edición directa dentro del widget queda fuera del alcance de esta Alpha; el widget permite abrir el editor mediante doble clic en la parte superior o el botón «Editar».
 
 ## Fase 2 — Experiencia de usuario (v0.2.x)
 
@@ -66,6 +66,7 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 - [x] Widgets flotantes de escritorio con título y vista previa del contenido.
 - [x] Mover, redimensionar y restaurar widgets entre sesiones.
 - [x] Abrir una nota en el editor desde su widget.
+- [ ] Editar el contenido directamente dentro del widget.
 - [ ] Integrar widgets directamente en la capa del escritorio detrás de los iconos de Windows.
 - [ ] Transparencia configurable.
 - [ ] Colores y temas.
