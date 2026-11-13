@@ -232,6 +232,8 @@ public partial class NoteWindow : Window
         }
     }
 
+    
+
     public async Task<bool> RequestCloseAsync()
     {
         if (_allowClose)
@@ -268,8 +270,6 @@ public partial class NoteWindow : Window
                 }
             }
 
-            _allowClose = true;
-            Close();
             return true;
         }
         finally
@@ -278,6 +278,19 @@ public partial class NoteWindow : Window
         }
     }
 
+
+    internal void CloseAfterRequest()
+    {
+        if (_allowClose)
+        {
+            return;
+        }
+
+        _allowClose = true;
+        Close();
+    }
+
+
     private async void Window_Closing(object? sender, CancelEventArgs e)
     {
         if (_allowClose)
@@ -285,9 +298,20 @@ public partial class NoteWindow : Window
             return;
         }
 
+        // Cancelamos el cierre inicial.
         e.Cancel = true;
-        await RequestCloseAsync();
+
+        // Comprobamos si se puede cerrar y guardamos los cambios.
+        bool canClose = await RequestCloseAsync();
+
+        if (canClose)
+        {
+            // Programamos el cierre autorizado.
+            _ = Dispatcher.BeginInvoke(new Action(CloseAfterRequest));        
+        }
     }
+
+
 
     private void UpdateWindowTitle()
     {

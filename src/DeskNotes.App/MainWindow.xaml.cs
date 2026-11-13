@@ -521,6 +521,7 @@ public partial class MainWindow : Window
         _settingsSaveTimer.Stop();
 
         var windowsToClose = _noteWindows.ToArray();
+
         foreach (var window in windowsToClose)
         {
             if (!await window.RequestCloseAsync())
@@ -541,6 +542,7 @@ public partial class MainWindow : Window
         {
             var settings = CreateCurrentSettings();
             settings.OpenNotes = openNoteStates;
+
             await _settingsService.SaveAsync(settings);
         }
         catch (Exception exception)
@@ -556,6 +558,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Cerrar las ventanas de notas cuyo cierre ya ha sido autorizado.
+        foreach (var window in windowsToClose)
+        {
+            window.CloseAfterRequest();
+        }
+
+        // Cerrar todos los widgets.
         foreach (var widget in _noteWidgets.ToArray())
         {
             widget.Close();

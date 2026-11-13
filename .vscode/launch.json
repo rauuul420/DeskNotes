@@ -1,0 +1,17 @@
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "DeskNotes - Debug",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/DeskNotes.App/bin/Debug/net10.0-windows/DeskNotes.App.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/DeskNotes.App",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        }
+    ]
+}
