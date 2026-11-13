@@ -60,7 +60,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock Text="DESKNOTES" Foreground="#929DB5" FontSize="9" FontWeight="Bold" LetterSpacing="1"/>
+                    <TextBlock Text="DESKNOTES" Foreground="#929DB5" FontSize="9" FontWeight="Bold"/>
                     <TextBlock x:Name="WidgetTitleText"
                                Text="Mi nota"
                                Foreground="#F4F5FA"
