@@ -28,6 +28,11 @@ Los cambios relevantes de DeskNotes se registrarán aquí. El formato sigue una 
 - Añadir la biblioteca persistente «Mis notas», independiente del estado de las ventanas abiertas.
 - Registrar automáticamente en la biblioteca las notas abiertas o guardadas, permitir volver a abrirlas y quitar entradas sin borrar archivos.
 - Añadir pruebas para comprobar que la biblioteca se conserva aunque no haya ventanas abiertas.
+- Añadir widgets flotantes sin borde ni botón en la barra de tareas, con título y vista previa del contenido de una nota.
+- Permitir mover, redimensionar, cerrar y abrir en el editor los widgets.
+- Añadir opción para mantener cada widget encima de otras ventanas.
+- Persistir y restaurar los widgets activos, posición, tamaño y estado «Mantener encima».
+- Actualizar el contenido de un widget cuando se guarda su nota.
 
 ### Nota de estado
 Estas funcionalidades están en una rama de desarrollo. La compilación Release y las 21 pruebas automatizadas pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404; la comprobación manual de la interfaz y la restauración de ventanas sigue pendiente. Todavía no forman parte de una versión publicada.
