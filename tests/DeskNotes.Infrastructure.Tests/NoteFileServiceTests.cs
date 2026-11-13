@@ -163,6 +163,85 @@ public sealed class NoteFileServiceTests
         }
     }
 
+
+    [Fact]
+    public async Task OpenAsync_DetectsUtf8BomAndReadsUnicode()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var path = Path.Combine(directory, "unicode.txt");
+            var content = "Español: acción, corazón, pingüino";
+            var bytes = System.Text.Encoding.UTF8.GetPreamble()
+                .Concat(System.Text.Encoding.UTF8.GetBytes(content))
+                .ToArray();
+
+            await File.WriteAllBytesAsync(path, bytes);
+
+            var note = await _service.OpenAsync(path);
+
+            Assert.Equal(content, note.Content);
+            Assert.DoesNotContain("\uFEFF", note.Content);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SaveAsync_AllowsSubsequentSaveAfterOpeningNewFile()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var path = Path.Combine(directory, "note.md");
+            var newNote = new Note { Content = "Primera versión" };
+
+            await _service.SaveAsync(newNote, path);
+
+            var openedNote = await _service.OpenAsync(path);
+            openedNote.Content = "Segunda versión";
+
+            await _service.SaveAsync(openedNote, path);
+
+            Assert.Equal("Segunda versión", await File.ReadAllTextAsync(path));
+            Assert.NotNull(openedNote.SourceSha256);
+            Assert.Equal((long)new System.IO.FileInfo(path).Length, openedNote.SourceLength!.Value);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SaveAsync_DoesNotRecreateSourceFileDeletedOutsideDeskNotes()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var path = Path.Combine(directory, "note.txt");
+            await File.WriteAllTextAsync(path, "Contenido original");
+
+            var note = await _service.OpenAsync(path);
+            note.Content = "Cambios en DeskNotes";
+            File.Delete(path);
+
+            await Assert.ThrowsAsync<IOException>(
+                () => _service.SaveAsync(note, path));
+
+            Assert.False(File.Exists(path));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static string CreateTemporaryDirectory()
     {
         var path = Path.Combine(
