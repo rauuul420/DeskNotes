@@ -113,7 +113,7 @@ jobs:
       - name: Create GitHub Release and upload installer
         shell: pwsh
         env:
-          GH_TOKEN: @@{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           $tag = $env:GITHUB_REF_NAME
           if ($tag -notmatch '^v(?<version>[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?)$') {
