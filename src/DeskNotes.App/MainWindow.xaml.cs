@@ -33,6 +33,9 @@ public partial class MainWindow : Window
         InitializeComponent();
         _noteSaveService = new NoteSaveService(_noteFileService);
         SavedNotesList.ItemsSource = _savedNotes;
+        _savedNotes.CollectionChanged += (_, _) =>
+            EmptyLibraryText.Visibility = _savedNotes.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        EmptyLibraryText.Visibility = Visibility.Visible;
 
         _settingsSaveTimer = new DispatcherTimer
         {
