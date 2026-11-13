@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using DeskNotes.Core.Interfaces;
 using DeskNotes.Core.Models;
 using Microsoft.Win32;
@@ -17,6 +18,7 @@ public partial class NoteWindow : Window
     private string? _filePath;
     private bool _isInitializing = true;
     private bool _isDirty;
+    private bool _isHandlingClose;
     private bool _allowClose;
 
     public NoteWindow(Note note, string? filePath, INoteFileService noteFileService)
@@ -57,6 +59,16 @@ public partial class NoteWindow : Window
     private async void SaveButton_Click(object sender, RoutedEventArgs e)
     {
         await SaveNoteAsync();
+    }
+
+    private async void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.S &&
+            Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            e.Handled = true;
+            await SaveNoteAsync();
+        }
     }
 
     private async Task<bool> SaveNoteAsync()
@@ -112,25 +124,39 @@ public partial class NoteWindow : Window
 
         e.Cancel = true;
 
-        var result = MessageBox.Show(
-            this,
-            "Esta nota tiene cambios sin guardar. ¿Quieres guardarlos antes de cerrar?",
-            "Cambios sin guardar",
-            MessageBoxButton.YesNoCancel,
-            MessageBoxImage.Warning);
-
-        if (result == MessageBoxResult.Cancel)
+        if (_isHandlingClose)
         {
             return;
         }
 
-        if (result == MessageBoxResult.Yes && !await SaveNoteAsync())
-        {
-            return;
-        }
+        _isHandlingClose = true;
 
-        _allowClose = true;
-        Close();
+        try
+        {
+            var result = MessageBox.Show(
+                this,
+                "Esta nota tiene cambios sin guardar. ¿Quieres guardarlos antes de cerrar?",
+                "Cambios sin guardar",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Cancel)
+            {
+                return;
+            }
+
+            if (result == MessageBoxResult.Yes && !await SaveNoteAsync())
+            {
+                return;
+            }
+
+            _allowClose = true;
+            Close();
+        }
+        finally
+        {
+            _isHandlingClose = false;
+        }
     }
 
     private void UpdateWindowTitle()
