@@ -22,4 +22,4 @@ Los cambios relevantes de DeskNotes se registrarán aquí. El formato sigue una 
 - Integración continua para restaurar, compilar y ejecutar pruebas en Windows.
 
 ### Nota de estado
-Estas funcionalidades están en una rama de desarrollo y pendientes de validación en Windows; todavía no forman parte de una versión publicada.
+Estas funcionalidades están en una rama de desarrollo. La compilación Release y las 10 pruebas automatizadas pasan en GitHub Actions sobre Windows; la comprobación manual de la interfaz sigue pendiente. Todavía no forman parte de una versión publicada.
