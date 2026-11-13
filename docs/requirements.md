@@ -39,6 +39,8 @@ El MVP debe proporcionar un flujo completo y fiable para crear, abrir, editar y 
 | FR-009 | El usuario debe poder activar y desactivar que una nota permanezca siempre encima de otras ventanas. | Obligatoria |
 | FR-010 | La aplicación debe recordar la posición y el tamaño de las ventanas entre ejecuciones. | Obligatoria |
 | FR-011 | La aplicación debe informar al usuario cuando una operación de archivo no pueda completarse. | Obligatoria |
+| FR-012 | La aplicación debe mantener una biblioteca persistente de archivos guardados, independiente de las ventanas abiertas. | Obligatoria |
+| FR-013 | El usuario debe poder volver a abrir un archivo desde la biblioteca o quitar su entrada sin borrar el archivo original. | Obligatoria |
 
 ### 3.2 Comportamientos que deben definirse durante la implementación
 
@@ -115,8 +117,10 @@ El MVP podrá considerarse funcional cuando se compruebe que:
 8. Las ventanas se pueden mover y redimensionar.
 9. La opción de mantener encima se puede activar y desactivar.
 10. La posición y el tamaño de las notas se restauran correctamente después de cerrar y volver a abrir la aplicación.
-11. Los errores de acceso a archivos se comunican sin provocar un cierre inesperado.
-12. Los cambios no guardados no se descartan sin una decisión explícita del usuario.
+11. Una nota guardada permanece en «Mis notas» después de cerrar su ventana y reiniciar DeskNotes.
+12. Quitar una entrada de «Mis notas» no elimina el archivo original.
+13. Los errores de acceso a archivos se comunican sin provocar un cierre inesperado.
+14. Los cambios no guardados no se descartan sin una decisión explícita del usuario.
 
 ## 8. Suposiciones y decisiones pendientes
 

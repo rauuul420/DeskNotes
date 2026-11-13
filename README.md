@@ -8,7 +8,7 @@ DeskNotes busca ofrecer una forma sencilla de mantener a la vista notas y docume
 
 ## Estado del proyecto
 
-El proyecto está desarrollando su primer MVP. Ya existe un flujo de creación, apertura y edición en ventanas independientes, con almacenamiento TXT/Markdown y protección frente a cambios externos. La compilación Release y las pruebas automatizadas pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404. La persistencia/restauración de ventanas y «Guardar como» están implementados en ramas de desarrollo. La lógica de guardado se está extrayendo a Core para poder probarla sin iniciar WPF.
+El proyecto está desarrollando su primer MVP. Ya existe un flujo de creación, apertura y edición en ventanas independientes, con almacenamiento TXT/Markdown y protección frente a cambios externos. La compilación Release y las pruebas automatizadas pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404. La persistencia/restauración de ventanas, «Guardar como» y la biblioteca persistente «Mis notas» están implementados en ramas de desarrollo. La coordinación del guardado está extraída a Core y cuenta con pruebas independientes de WPF.
 
 Consulta la [hoja de ruta](docs/roadmap.md) para conocer las fases previstas y los [requisitos](docs/requirements.md) para ver el alcance funcional.
 
@@ -24,8 +24,9 @@ Consulta la [hoja de ruta](docs/roadmap.md) para conocer las fases previstas y l
 - Activar o desactivar la opción de mantener una nota siempre visible.
 - Recordar las posiciones y tamaños de las ventanas.
 - Restaurar las notas abiertas en el siguiente inicio.
+- Mantener una biblioteca «Mis notas» independiente de las ventanas abiertas.
 
-El guardado automático y la vista previa de Markdown todavía no están implementados.
+El guardado automático y la vista previa de Markdown todavía no están implementados. La biblioteca «Mis notas» guarda rutas y títulos en la configuración local; el contenido continúa en los archivos originales.
 
 Las funciones avanzadas —como vista previa Markdown, transparencia, temas, etiquetas, búsqueda y sincronización— se incorporarán después del MVP.
 

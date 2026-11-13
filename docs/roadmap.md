@@ -24,7 +24,7 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 
 **Objetivo:** disponer de una aplicación útil para crear, abrir y editar notas en ventanas flotantes.
 
-**Estado de implementación:** el flujo de creación, apertura, edición y guardado TXT/Markdown está implementado en `feature/note-window-mvp`; la persistencia/restauración de ventanas está en `feature/window-state-persistence`; «Guardar como» está en `feature/save-as-workflow`. Estas ramas siguen en PR y no forman parte de `main`. Las pruebas de almacenamiento y configuración pasan en CI; la nueva separación testeable del guardado está en curso. Falta validar manualmente la interfaz y los escenarios de sesión en Windows.
+**Estado de implementación:** el flujo de creación, apertura, edición y guardado TXT/Markdown está implementado en `feature/note-window-mvp`; la persistencia/restauración de ventanas está en `feature/window-state-persistence`; «Guardar como» está en `feature/save-as-workflow`. Estas ramas siguen en PR y no forman parte de `main`. Las pruebas de almacenamiento y configuración pasan en CI; la separación testeable del guardado está implementada y la biblioteca persistente «Mis notas» está en desarrollo. Falta validar manualmente la interfaz y los escenarios de sesión en Windows.
 
 ### Gestión de notas y archivos
 
@@ -34,6 +34,9 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 - [x] Editar el contenido.
 - [x] Guardar en el archivo original.
 - [x] Guardar una nota en otra ubicación mediante «Guardar como».
+- [x] Mantener una biblioteca de archivos guardados independiente de las ventanas abiertas.
+- [x] Volver a abrir una nota desde «Mis notas».
+- [x] Quitar una entrada de la biblioteca sin eliminar el archivo original.
 - [ ] Gestionar errores de lectura y escritura.
 - [x] Avisar antes de descartar cambios sin guardar.
 

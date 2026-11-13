@@ -44,6 +44,28 @@
             <Setter Property="Background" Value="#252B38"/>
             <Setter Property="Foreground" Value="#E7EAF2"/>
         </Style>
+        <Style x:Key="LibraryItemButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#E9ECF5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ItemBorder" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#252D40"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="34">
@@ -53,7 +75,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,34">
+        <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,26">
             <StackPanel DockPanel.Dock="Left">
                 <TextBlock Text="DeskNotes" Foreground="#F4F5FA" FontSize="28" FontWeight="SemiBold"/>
                 <TextBlock Text="Tus ideas, siempre a mano." Foreground="#9299AA" FontSize="13" Margin="1,5,0,0"/>
@@ -64,24 +86,89 @@
             </StackPanel>
         </DockPanel>
 
-        <Border Grid.Row="1" Background="#191E29" CornerRadius="16" Padding="34">
+        <Border Grid.Row="1" Background="#191E29" CornerRadius="16" Padding="24">
             <Grid>
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="520">
-                    <Border Width="66" Height="66" CornerRadius="16" Background="#272F46" HorizontalAlignment="Center" Margin="0,0,0,22">
-                        <TextBlock Text="✎" FontSize="32" Foreground="#AAB4FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <TextBlock Text="Un espacio para tus notas" Foreground="#F4F5FA" FontSize="23" FontWeight="SemiBold" TextAlignment="Center"/>
-                    <TextBlock Text="Crea una nota nueva o abre un archivo TXT o Markdown que ya tengas. Cada documento se abrirá en su propia ventana y seguirá siendo un archivo normal de tu equipo."
-                               Foreground="#A3AABD" FontSize="14" TextAlignment="Center" TextWrapping="Wrap" LineHeight="23" Margin="0,12,0,26"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Button Content="Crear una nota" Style="{StaticResource PrimaryButton}" Click="NewNote_Click" Margin="0,0,10,0"/>
-                        <Button Content="Abrir TXT o MD" Style="{StaticResource SecondaryButton}" Click="OpenNote_Click"/>
-                    </StackPanel>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" Margin="2,0,2,16">
+                    <TextBlock Text="Mis notas" Foreground="#F4F5FA" FontSize="21" FontWeight="SemiBold"/>
+                    <TextBlock Text="Tus archivos guardados permanecen aquí aunque cierres sus ventanas."
+                               Foreground="#9299AA" FontSize="12" Margin="0,5,0,0"/>
                 </StackPanel>
+
+                <TextBlock x:Name="EmptyLibraryText"
+                           Grid.Row="1"
+                           Text="Todavía no tienes notas guardadas. Crea una nota o abre un archivo TXT o MD para añadirlo aquí."
+                           Foreground="#747D90"
+                           FontSize="14"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           MaxWidth="420"
+                           Margin="20"/>
+
+                <ListBox x:Name="SavedNotesList"
+                         Grid.Row="1"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="0,0,0,5"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Focusable" Value="False"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0"
+                                        Style="{StaticResource LibraryItemButton}"
+                                        Tag="{Binding FilePath}"
+                                        Click="SavedNote_Click">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="34"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="▤" FontSize="21" Foreground="#AAB4FF"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0">
+                                            <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Foreground="#E9ECF5"/>
+                                            <TextBlock Text="{Binding FilePath}" FontSize="11" Foreground="#858EA3"
+                                                       TextTrimming="CharacterEllipsis" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Button>
+                                <Button Grid.Column="1"
+                                        Content="Quitar"
+                                        Tag="{Binding FilePath}"
+                                        Click="RemoveSavedNote_Click"
+                                        Background="Transparent"
+                                        Foreground="#9299AA"
+                                        BorderThickness="0"
+                                        Padding="12,8"
+                                        Cursor="Hand"
+                                        VerticalAlignment="Center"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </Grid>
         </Border>
 
-        <TextBlock Grid.Row="2" Text="Los documentos permanecen en las ubicaciones que tú elijas."
-                   Foreground="#747D90" FontSize="12" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+        <TextBlock Grid.Row="2" Text="Los archivos originales nunca se eliminan al quitar una nota de esta lista."
+                   Foreground="#747D90" FontSize="12" HorizontalAlignment="Center" Margin="0,18,0,0"/>
     </Grid>
 </Window>

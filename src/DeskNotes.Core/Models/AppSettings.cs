@@ -9,4 +9,10 @@ public sealed class AppSettings
     /// Gets or sets the note windows that should be restored on the next launch.
     /// </summary>
     public List<NoteWindowState> OpenNotes { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the independent library of saved note files.
+    /// Closing a note window does not remove its library entry.
+    /// </summary>
+    public List<SavedNote> SavedNotes { get; set; } = [];
 }

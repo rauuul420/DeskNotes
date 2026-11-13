@@ -163,12 +163,13 @@ Una nota nueva que todavía no se haya guardado necesitará poder existir sin un
 
 Los archivos TXT y MD son la fuente original del contenido. DeskNotes debe leerlos y escribirlos sin exigir que el usuario los importe a una base de datos propia.
 
-Se distinguirán dos tipos de información:
+Se distinguen tres tipos de información:
 
 1. **Contenido de la nota:** se guarda en el archivo elegido por el usuario.
-2. **Preferencias de la aplicación:** pueden guardarse en almacenamiento local separado, por ejemplo posición y tamaño de ventanas.
+2. **Biblioteca «Mis notas»:** conserva las rutas y títulos de los archivos registrados, independientemente de que sus ventanas estén abiertas. Quitar una entrada no elimina el archivo.
+3. **Estado de sesión:** conserva las ventanas abiertas y su geometría para restaurarlas al iniciar.
 
-El servicio actual lee y escribe TXT/MD como UTF-8, detecta BOM al abrir, escribe sin BOM y utiliza un archivo temporal antes de sustituir el destino. El servicio `JsonAppSettingsService` persiste las rutas de las notas abiertas y sus posiciones, dimensiones y estado `Topmost` en `%LocalAppData%/DeskNotes/settings.json`, usando también un archivo temporal para sustituir la configuración. Al abrir una nota registra fecha, tamaño y hash SHA-256 del contenido; antes de guardar una nota existente compara esos datos para detectar modificaciones externas. Esta comprobación reduce el riesgo de sobrescritura, aunque no elimina por completo una posible carrera si otro proceso modifica el archivo exactamente entre la comprobación y el reemplazo.
+El servicio actual lee y escribe TXT/MD como UTF-8, detecta BOM al abrir, escribe sin BOM y utiliza un archivo temporal antes de sustituir el destino. El servicio `JsonAppSettingsService` persiste por separado la biblioteca de archivos guardados y las rutas de las notas abiertas con sus posiciones, dimensiones y estado `Topmost` en `%LocalAppData%/DeskNotes/settings.json`, usando también un archivo temporal para sustituir la configuración. Al abrir una nota registra fecha, tamaño y hash SHA-256 del contenido; antes de guardar una nota existente compara esos datos para detectar modificaciones externas. Esta comprobación reduce el riesgo de sobrescritura, aunque no elimina por completo una posible carrera si otro proceso modifica el archivo exactamente entre la comprobación y el reemplazo.
 
 La decisión de almacenamiento de documentos se documenta en [ADR-002](decisions/ADR-002-file-storage.md). La persistencia de la sesión y las ventanas se documenta en [ADR-003](decisions/ADR-003-window-state-persistence.md).
 

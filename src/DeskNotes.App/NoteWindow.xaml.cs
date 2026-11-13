@@ -24,6 +24,8 @@ public partial class NoteWindow : Window
 
     public event EventHandler? PlacementChanged;
 
+    public event Action<NoteWindow, string>? SavedToFile;
+
     public string? FilePath => _filePath;
 
     public NoteWindow(
@@ -213,6 +215,7 @@ public partial class NoteWindow : Window
             StatusText.Text = $"Guardado · {DateTime.Now:HH:mm}";
             UpdateWindowTitle();
             OnPlacementChanged(this, EventArgs.Empty);
+            SavedToFile?.Invoke(this, destinationPath);
             return true;
         }
         catch (Exception exception)
