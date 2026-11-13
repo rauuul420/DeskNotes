@@ -129,10 +129,13 @@ Solo después de aprobar los tres prototipos anteriores. Mantener el modo standa
 - [High DPI desktop application development](https://learn.microsoft.com/en-us/windows/win32/hidpi/high-dpi-desktop-application-development-on-windows)
 - [Window Features — Z-order and layered windows](https://learn.microsoft.com/en-us/windows/win32/winmsg/window-features)
 - [UpdateLayeredWindow](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-updatelayeredwindow)
+- [SetFocus](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setfocus)
+- [AttachThreadInput](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-attachthreadinput)
 - [WPF and Win32 interoperation](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/wpf-and-win32-interoperation)
 - [HwndSourceParameters (.NET Desktop 10 API)](https://learn.microsoft.com/en-us/dotnet/api/system.windows.interop.hwndsourceparameters?view=windowsdesktop-10.0)
 - [HwndSource (.NET Desktop 10 API)](https://learn.microsoft.com/en-us/dotnet/api/system.windows.interop.hwndsource?view=windowsdesktop-10.0)
-- [WPF HwndSourceParameters source](https://github.com/dotnet/wpf/blob/main/src/Microsoft.DotNet.Wpf/src/PresentationCore/System/Windows/InterOp/HwndSourceParameters.cs)
+- [WPF HwndSourceParameters source (inspected commit)](https://github.com/dotnet/wpf/blob/e7acf467c05e51901b17684b1f2c330e7dc5fc4d/src/Microsoft.DotNet.Wpf/src/PresentationCore/System/Windows/InterOp/HwndSourceParameters.cs)
+- [WPF HwndSource source (inspected commit)](https://github.com/dotnet/wpf/blob/e7acf467c05e51901b17684b1f2c330e7dc5fc4d/src/Microsoft.DotNet.Wpf/src/PresentationCore/System/Windows/InterOp/HwndSource.cs)
 
 ### Código fuente externo inspeccionado
 - [Ivy Windows Wallpaper — DesktopInterop.cs](https://github.com/Ivy-Interactive/Ivy-Windows-Wallpaper/blob/main/src/Ivy.Windows.Wallpaper/DesktopInterop.cs)
