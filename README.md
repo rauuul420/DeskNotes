@@ -104,7 +104,7 @@ La compilación y la ejecución deben realizarse en Windows, ya que el proyecto 
 
 ## Empaquetado para Windows
 
-La distribución se prepara mediante NSIS. El instalador final se denomina `desknotes-setupe.exe` y realiza una instalación por usuario en `%LocalAppData%\Programs\\DeskNotes`, sin solicitar permisos de administrador.
+La distribución se prepara mediante NSIS. El instalador final se denomina `desknotes-setupe.exe` y realiza una instalación por usuario en `%LocalAppData%\Programs\DeskNotes`, sin solicitar permisos de administrador.
 
 La publicación genera un único ejecutable de aplicación para `win-x64` con `.NET 10` framework-dependent (`SelfContained=false`, `PublishSingleFile=true`). **No incluye el runtime de .NET**: el equipo de destino debe disponer de `Microsoft .NET 10 Desktop Runtime x64`. El instalador comprueba este requisito y ofrece abrir la descarga oficial si no está instalado.
 
@@ -113,7 +113,7 @@ En Windows, con .NET SDK 10.0.404 y NSIS instalados, ejecutar desde la raíz:
 ```powershell
 ./packaging/publish.ps1
 New-Item -ItemType Directory -Force artifacts/installer
-& "${env:ProgramFiles(x86)}\\NSIS\makensis.exe" /DAPP_VERSION=0.1.0-alpha /DAPP_VERSION_NUM=0.1.0.0 /DPUBLISH_DIR="$PWD\artifacts\\publish" /DOUTPUT_DIR="$PWD\artifacts\\installer" packaging/nsis/DeskNotes.nsi
+& "${env:ProgramFiles(x86)}\NSIS\makensis.exe" /DAPP_VERSION=0.1.0-alpha /DAPP_VERSION_NUM=0.1.0.0 /DPUBLISH_DIR="$PWD\artifacts\publish" /DOUTPUT_DIR="$PWD\artifacts\installer" packaging/nsis/DeskNotes.nsi
 ```
 
 El instalador se genera en `artifacts/installer/desknotes-setupe.exe`. La configuración y compilación automatizada se encuentran en `.github/workflows/installer.yml`. Esta canalización está en preparación y no se considerará lista para distribución hasta completar la compilación NSIS y las pruebas de instalación, actualización y desinstalación en Windows.
