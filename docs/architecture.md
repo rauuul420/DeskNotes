@@ -50,12 +50,16 @@ DeskNotes/
 │   ├── DeskNotes.App/
 │   │   ├── App.xaml
 │   │   ├── MainWindow.xaml
+│   │   ├── MainWindow.xaml.cs
+│   │   ├── NoteWindow.xaml
+│   │   ├── NoteWindow.xaml.cs
 │   │   └── DeskNotes.App.csproj
 │   ├── DeskNotes.Core/
 │   │   └── DeskNotes.Core.csproj
 │   └── DeskNotes.Infrastructure/
 │       └── DeskNotes.Infrastructure.csproj
-└── tests/                       # Pendiente de crear
+└── tests/
+    └── DeskNotes.Infrastructure.Tests/
 ```
 
 Estructura objetivo progresiva:
@@ -163,7 +167,7 @@ Se distinguirán dos tipos de información:
 1. **Contenido de la nota:** se guarda en el archivo elegido por el usuario.
 2. **Preferencias de la aplicación:** pueden guardarse en almacenamiento local separado, por ejemplo posición y tamaño de ventanas.
 
-La estrategia debe contemplar errores de acceso, codificación, modificaciones externas y guardado seguro. Los detalles se desarrollarán antes de implementar el servicio de archivos.
+El servicio actual lee y escribe TXT/MD como UTF-8, detecta BOM al abrir, escribe sin BOM y utiliza un archivo temporal antes de sustituir el destino. Al abrir una nota registra fecha, tamaño y hash SHA-256 del contenido; antes de guardar una nota existente compara esos datos para detectar modificaciones externas. Esta comprobación reduce el riesgo de sobrescritura, aunque no elimina por completo una posible carrera si otro proceso modifica el archivo exactamente entre la comprobación y el reemplazo.
 
 La decisión se documenta en [ADR-002](decisions/ADR-002-file-storage.md).
 
@@ -185,7 +189,7 @@ DeskNotes.Infrastructure.Tests
         └──> DeskNotes.Core
 ```
 
-Los proyectos de pruebas todavía no forman parte de la solución y se añadirán cuando preparemos la infraestructura de testing.
+El proyecto `DeskNotes.Infrastructure.Tests` ya forma parte de la solución y contiene pruebas del servicio de archivos. Las pruebas de Core y de interfaz se añadirán cuando existan reglas y comportamientos que justifiquen cubrirlas.
 
 ## 9. Pruebas
 
