@@ -21,6 +21,28 @@ public sealed class AppSettingsServiceTests
             Assert.Empty(settings.OpenNotes);
             Assert.Empty(settings.SavedNotes);
             Assert.Empty(settings.NoteWidgets);
+            Assert.False(settings.DesktopLayerEnabled);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SaveAsync_AndLoadAsync_PreserveDesktopLayerPreference()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var service = new JsonAppSettingsService(Path.Combine(directory, "settings.json"));
+            var settings = new AppSettings { DesktopLayerEnabled = true };
+
+            await service.SaveAsync(settings);
+            var loaded = await service.LoadAsync();
+
+            Assert.True(loaded.DesktopLayerEnabled);
         }
         finally
         {

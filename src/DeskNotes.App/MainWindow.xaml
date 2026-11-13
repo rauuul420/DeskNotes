@@ -294,6 +294,14 @@
                         <TextBlock Text="El intervalo se cuenta desde la última modificación realizada en el editor." Foreground="#747D90" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0"/>
                     </StackPanel>
                 </Border>
+                <Border Background="#191E29" CornerRadius="12" Padding="20" Margin="0,14,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Capa del escritorio" Foreground="#F4F5FA" FontSize="17" FontWeight="SemiBold"/>
+                        <TextBlock Text="Coloca los widgets entre el fondo de pantalla y los iconos del escritorio. Seguirán siendo interactivos y podrás moverlos y cambiar su tamaño." Foreground="#9299AA" FontSize="12" TextWrapping="Wrap" Margin="0,7,0,16"/>
+                        <CheckBox x:Name="DesktopLayerCheckBox" Content="Mostrar widgets debajo de los iconos del escritorio" Foreground="#E9ECF5" FontSize="13" Checked="DesktopLayerEnabled_Changed" Unchecked="DesktopLayerEnabled_Changed"/>
+                        <TextBlock Text="Esta función utiliza mecanismos internos de Explorer. Si Windows no permite establecer la capa, DeskNotes mantendrá los widgets en modo normal." Foreground="#747D90" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                    </StackPanel>
+                </Border>
             </StackPanel>
 
             <Button Content="←"

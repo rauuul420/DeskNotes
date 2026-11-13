@@ -23,17 +23,20 @@ public partial class MainWindow : Window
     private readonly IAppSettingsService _settingsService = new JsonAppSettingsService();
     private readonly List<NoteWindow> _noteWindows = [];
     private readonly List<NoteWidgetWindow> _noteWidgets = [];
+    private readonly DesktopLayerService _desktopLayerService;
     private readonly ObservableCollection<SavedNote> _savedNotes = [];
     private readonly DispatcherTimer _settingsSaveTimer;
     private bool _isRestoring;
     private bool _isClosing;
     private bool _allowClose;
     private bool _autoSaveEnabled;
+    private bool _desktopLayerEnabled;
     private int _autoSaveIntervalSeconds = 10;
 
     public MainWindow()
     {
         InitializeComponent();
+        _desktopLayerService = new DesktopLayerService(Dispatcher);
         _noteSaveService = new NoteSaveService(_noteFileService);
         SavedNotesList.ItemsSource = _savedNotes;
         _savedNotes.CollectionChanged += (_, _) =>
@@ -55,6 +58,8 @@ public partial class MainWindow : Window
         {
             var settings = await _settingsService.LoadAsync();
             _autoSaveEnabled = settings.AutoSaveEnabled;
+            _desktopLayerEnabled = settings.DesktopLayerEnabled;
+            DesktopLayerCheckBox.IsChecked = _desktopLayerEnabled;
             _autoSaveIntervalSeconds = settings.AutoSaveIntervalSeconds is 5 or 10 or 30 or 60 ? settings.AutoSaveIntervalSeconds : 10;
             AutoSaveCheckBox.IsChecked = _autoSaveEnabled;
             AutoSaveIntervalComboBox.SelectedIndex = _autoSaveIntervalSeconds switch { 5 => 0, 30 => 2, 60 => 3, _ => 1 };
@@ -207,6 +212,94 @@ public partial class MainWindow : Window
     {
         foreach (var window in _noteWindows) window.ConfigureAutoSave(_autoSaveEnabled, _autoSaveIntervalSeconds);
         ScheduleSettingsSave();
+    }
+
+    private void DesktopLayerEnabled_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_isRestoring)
+        {
+            return;
+        }
+
+        var requested = DesktopLayerCheckBox.IsChecked == true;
+
+        if (!requested)
+        {
+            foreach (var widget in _noteWidgets)
+            {
+                _desktopLayerService.Detach(widget);
+                widget.SetDesktopLayerActive(false);
+            }
+
+            _desktopLayerEnabled = false;
+            ScheduleSettingsSave();
+            return;
+        }
+
+        var attachedWidgets = new List<NoteWidgetWindow>();
+
+        foreach (var widget in _noteWidgets)
+        {
+            widget.SetDesktopLayerActive(true);
+
+            if (_desktopLayerService.TryAttach(widget, out var error))
+            {
+                attachedWidgets.Add(widget);
+                continue;
+            }
+
+            widget.SetDesktopLayerActive(false);
+
+            foreach (var attached in attachedWidgets)
+            {
+                _desktopLayerService.Detach(attached);
+                attached.SetDesktopLayerActive(false);
+            }
+
+            DisableDesktopLayerAfterFailure(error);
+            return;
+        }
+
+        _desktopLayerEnabled = true;
+        ScheduleSettingsSave();
+    }
+
+    private void ApplyDesktopLayerToWidget(NoteWidgetWindow widget)
+    {
+        if (!_desktopLayerEnabled)
+        {
+            return;
+        }
+
+        widget.SetDesktopLayerActive(true);
+
+        if (_desktopLayerService.TryAttach(widget, out var error))
+        {
+            return;
+        }
+
+        widget.SetDesktopLayerActive(false);
+        DisableDesktopLayerAfterFailure(error);
+    }
+
+    private void DisableDesktopLayerAfterFailure(string error)
+    {
+        foreach (var widget in _noteWidgets)
+        {
+            _desktopLayerService.Detach(widget);
+            widget.SetDesktopLayerActive(false);
+        }
+
+        _desktopLayerEnabled = false;
+        DesktopLayerCheckBox.IsChecked = false;
+        ScheduleSettingsSave();
+
+        MessageBox.Show(
+            this,
+            "Windows no ha permitido colocar los widgets en la capa situada debajo de los iconos. DeskNotes ha restaurado todos los widgets al modo de ventana normal.\n\n" + error,
+            "No se pudo activar la capa del escritorio",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
     }
 
     private async void OpenNote_Click(object sender, RoutedEventArgs e)
@@ -362,6 +455,7 @@ public partial class MainWindow : Window
         _noteWidgets.Add(widget);
 
         widget.Show();
+        ApplyDesktopLayerToWidget(widget);
     }
 
     private void NoteWidget_EditRequested(NoteWidgetWindow widget)
@@ -384,6 +478,7 @@ public partial class MainWindow : Window
         widget.PlacementChanged -= NoteWidget_PlacementChanged;
         widget.EditRequested -= NoteWidget_EditRequested;
         widget.Closed -= NoteWidget_Closed;
+        _desktopLayerService.Forget(widget);
         _noteWidgets.Remove(widget);
         ScheduleSettingsSave();
     }
@@ -510,6 +605,7 @@ public partial class MainWindow : Window
         return new AppSettings
         {
             AutoSaveEnabled = _autoSaveEnabled,
+            DesktopLayerEnabled = _desktopLayerEnabled,
             AutoSaveIntervalSeconds = _autoSaveIntervalSeconds,
             OpenNotes = _noteWindows
                 .Select(window => window.CaptureState())
@@ -609,6 +705,7 @@ public partial class MainWindow : Window
             widget.Close();
         }
 
+        _desktopLayerService.Dispose();
         _allowClose = true;
         Close();
     }

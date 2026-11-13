@@ -6,6 +6,12 @@ namespace DeskNotes.Core.Models;
 public sealed class AppSettings
 {
     /// <summary>
+    /// Gets or sets whether desktop widgets are embedded between the wallpaper and desktop icons.
+    /// Disabled by default because desktop hosting relies on undocumented Windows shell behavior.
+    /// </summary>
+    public bool DesktopLayerEnabled { get; set; }
+
+    /// <summary>
     /// Gets or sets whether existing file-backed notes are saved automatically.
     /// </summary>
     public bool AutoSaveEnabled { get; set; }
