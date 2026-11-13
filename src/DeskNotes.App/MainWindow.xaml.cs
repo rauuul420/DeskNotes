@@ -1,6 +1,8 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Threading;
 using DeskNotes.Core.Interfaces;
 using DeskNotes.Core.Models;
@@ -12,7 +14,7 @@ using Microsoft.Win32;
 namespace DeskNotes.App;
 
 /// <summary>
-/// Main application window. It launches notes and restores the previous session.
+/// Main application window. It manages the saved-note library and restores the previous session.
 /// </summary>
 public partial class MainWindow : Window
 {
@@ -20,6 +22,7 @@ public partial class MainWindow : Window
     private readonly NoteSaveService _noteSaveService;
     private readonly IAppSettingsService _settingsService = new JsonAppSettingsService();
     private readonly List<NoteWindow> _noteWindows = [];
+    private readonly ObservableCollection<SavedNote> _savedNotes = [];
     private readonly DispatcherTimer _settingsSaveTimer;
     private bool _isRestoring;
     private bool _isClosing;
@@ -29,6 +32,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _noteSaveService = new NoteSaveService(_noteFileService);
+        SavedNotesList.ItemsSource = _savedNotes;
 
         _settingsSaveTimer = new DispatcherTimer
         {
@@ -44,6 +48,28 @@ public partial class MainWindow : Window
         try
         {
             var settings = await _settingsService.LoadAsync();
+
+            foreach (var savedNote in settings.SavedNotes)
+            {
+                if (string.IsNullOrWhiteSpace(savedNote.FilePath))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    AddSavedNote(savedNote.FilePath, savedNote.Title, savedNote.AddedAt);
+                }
+                catch (Exception exception)
+                {
+                    MessageBox.Show(
+                        this,
+                        $"No se pudo cargar la entrada '{savedNote.FilePath}' de Mis notas.\n\n{exception.Message}",
+                        "Entrada de biblioteca no válida",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+            }
 
             var restoredPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -64,6 +90,7 @@ public partial class MainWindow : Window
                     }
 
                     var note = await _noteFileService.OpenAsync(fullPath);
+                    AddSavedNote(fullPath, note.Title);
                     OpenNoteWindow(note, fullPath, savedWindow);
                 }
                 catch (Exception exception)
@@ -114,20 +141,48 @@ public partial class MainWindow : Window
             return;
         }
 
-        var fullPath = Path.GetFullPath(dialog.FileName);
-        var existingWindow = _noteWindows.FirstOrDefault(window =>
-            string.Equals(window.FilePath, fullPath, StringComparison.OrdinalIgnoreCase));
+        await OpenSavedNoteAsync(dialog.FileName);
+    }
 
-        if (existingWindow is not null)
+    private async void SavedNote_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string filePath })
         {
-            existingWindow.Activate();
             return;
         }
 
+        await OpenSavedNoteAsync(filePath);
+    }
+
+    private async Task OpenSavedNoteAsync(string filePath)
+    {
         try
         {
+            var fullPath = Path.GetFullPath(filePath);
+            var existingWindow = _noteWindows.FirstOrDefault(window =>
+                string.Equals(window.FilePath, fullPath, StringComparison.OrdinalIgnoreCase));
+
+            if (existingWindow is not null)
+            {
+                existingWindow.Activate();
+                return;
+            }
+
+            if (!File.Exists(fullPath))
+            {
+                MessageBox.Show(
+                    this,
+                    $"No se encuentra el archivo de esta nota:\n\n{fullPath}\n\nSi lo has movido, usa «Abrir archivo» para abrir su nueva ubicación. También puedes quitar esta entrada de Mis notas; el archivo original no se eliminará.",
+                    "Archivo no encontrado",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
             var note = await _noteFileService.OpenAsync(fullPath);
+            AddSavedNote(fullPath, note.Title);
             OpenNoteWindow(note, fullPath);
+            await SaveCurrentSettingsAsync();
         }
         catch (Exception exception)
         {
@@ -138,6 +193,25 @@ public partial class MainWindow : Window
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
         }
+    }
+
+    private async void RemoveSavedNote_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string filePath })
+        {
+            return;
+        }
+
+        var entry = _savedNotes.FirstOrDefault(note =>
+            string.Equals(note.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+
+        if (entry is null)
+        {
+            return;
+        }
+
+        _savedNotes.Remove(entry);
+        await SaveCurrentSettingsAsync();
     }
 
     private void OpenNoteWindow(
@@ -151,6 +225,7 @@ public partial class MainWindow : Window
         };
 
         window.PlacementChanged += NoteWindow_PlacementChanged;
+        window.SavedToFile += NoteWindow_SavedToFile;
         window.Closed += NoteWindow_Closed;
         _noteWindows.Add(window);
 
@@ -158,6 +233,39 @@ public partial class MainWindow : Window
         window.Activate();
 
         ScheduleSettingsSave();
+    }
+
+    private void NoteWindow_SavedToFile(NoteWindow window, string filePath)
+    {
+        AddSavedNote(filePath, Path.GetFileNameWithoutExtension(filePath));
+        _ = SaveCurrentSettingsAsync();
+    }
+
+    private void AddSavedNote(
+        string filePath,
+        string? title = null,
+        DateTimeOffset? addedAt = null)
+    {
+        var fullPath = Path.GetFullPath(filePath);
+        var existing = _savedNotes.FirstOrDefault(note =>
+            string.Equals(note.FilePath, fullPath, StringComparison.OrdinalIgnoreCase));
+
+        if (existing is not null)
+        {
+            existing.Title = string.IsNullOrWhiteSpace(title)
+                ? Path.GetFileNameWithoutExtension(fullPath)
+                : title;
+            return;
+        }
+
+        _savedNotes.Add(new SavedNote
+        {
+            FilePath = fullPath,
+            Title = string.IsNullOrWhiteSpace(title)
+                ? Path.GetFileNameWithoutExtension(fullPath)
+                : title,
+            AddedAt = addedAt ?? DateTimeOffset.UtcNow
+        });
     }
 
     private void NoteWindow_PlacementChanged(object? sender, EventArgs e)
@@ -173,9 +281,11 @@ public partial class MainWindow : Window
         }
 
         window.PlacementChanged -= NoteWindow_PlacementChanged;
+        window.SavedToFile -= NoteWindow_SavedToFile;
         window.Closed -= NoteWindow_Closed;
         _noteWindows.Remove(window);
 
+        // The saved-note library is deliberately independent from open windows.
         ScheduleSettingsSave();
     }
 
@@ -204,7 +314,8 @@ public partial class MainWindow : Window
                 .Select(window => window.CaptureState())
                 .Where(state => state is not null)
                 .Cast<NoteWindowState>()
-                .ToList()
+                .ToList(),
+            SavedNotes = _savedNotes.ToList()
         };
 
         try
@@ -215,7 +326,7 @@ public partial class MainWindow : Window
         {
             MessageBox.Show(
                 this,
-                $"No se pudo guardar la configuración de las ventanas.\n\n{exception.Message}",
+                $"No se pudo guardar la configuración de DeskNotes.\n\n{exception.Message}",
                 "Error al guardar la configuración",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -257,7 +368,8 @@ public partial class MainWindow : Window
                 .Select(window => window.CaptureState())
                 .Where(state => state is not null)
                 .Cast<NoteWindowState>()
-                .ToList()
+                .ToList(),
+            SavedNotes = _savedNotes.ToList()
         };
 
         try
