@@ -208,7 +208,11 @@ internal sealed class DesktopSurface : IDisposable
             throw NativeFailure("CreateWindowEx(WS_CHILD | WS_EX_LAYERED) falló.");
 
         if (constantAlpha && !SetLayeredWindowAttributes(hwnd, 0, 255, LwaAlpha))
-            throw NativeFailure("SetLayeredWindowAttributes(alpha=255) falló.");
+        {
+            var error = Marshal.GetLastWin32Error();
+            _ = DestroyWindow(hwnd);
+            throw new Win32Exception(error, $"SetLayeredWindowAttributes(alpha=255) falló. Win32Error={error}.");
+        }
 
         IntPtr memoryDc = IntPtr.Zero;
         IntPtr bitmap = IntPtr.Zero;
