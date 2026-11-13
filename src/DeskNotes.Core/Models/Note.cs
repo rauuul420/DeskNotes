@@ -29,4 +29,15 @@ public sealed class Note
     /// Gets or sets the date and time when the note was last updated (UTC).
     /// </summary>
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// Gets or sets the last known modification time of the source file.
+    /// Null means the note has not been loaded from an existing file.
+    /// </summary>
+    public DateTimeOffset? SourceLastWriteTimeUtc { get; set; }
+
+    /// <summary>
+    /// Gets or sets the last known size of the source file in bytes.
+    /// </summary>
+    public long? SourceLength { get; set; }
 }
