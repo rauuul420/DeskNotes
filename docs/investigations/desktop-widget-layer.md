@@ -69,6 +69,8 @@ La detección mediante WS_EX_NOREDIRECTIONBITMAP es más sólida que inferir la 
 
 El requisito Windows 10 1903+ publicado por Lively corresponde a su distribución/instalador y dependencias; no demuestra que SetParent, WorkerW o layered child windows aparecieran en esa versión. Microsoft documenta layered child windows desde Windows 8, con la condición de declarar compatibilidad con Windows 8+ en el manifiesto. Esto tampoco garantiza por sí solo la compatibilidad de WPF.
 
+El NativeProbe incorpora ahora app.manifest con compatibilidad declarada para Windows 8, 8.1 y Windows 10/11, y el proyecto lo incrusta mediante ApplicationManifest. Referencias: [Microsoft — Window Features](https://learn.microsoft.com/en-us/windows/win32/winmsg/window-features) y [Microsoft — Application manifests](https://learn.microsoft.com/en-us/windows/win32/sbscs/application-manifests).
+
 Fuentes:
 - [Lively — WinDesktopCore.cs, commit inspeccionado](https://github.com/lively-community/lively/blob/25a0a5f4ed1988ff42117d3a17feb321062237fe/src/Lively/Lively/Core/WinDesktopCore.cs)
 - [Lively — DesktopUtil.cs](https://github.com/lively-community/lively/blob/25a0a5f4ed1988ff42117d3a17feb321062237fe/src/Lively/Lively.Common/Helpers/Shell/DesktopUtil.cs)
