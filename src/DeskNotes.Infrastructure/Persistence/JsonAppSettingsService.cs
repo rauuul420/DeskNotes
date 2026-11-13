@@ -43,11 +43,14 @@ public sealed class JsonAppSettingsService : IAppSettingsService
             bufferSize: 4096,
             options: FileOptions.Asynchronous | FileOptions.SequentialScan);
 
-        return await JsonSerializer.DeserializeAsync<AppSettings>(
-                   stream,
-                   SerializerOptions,
-                   cancellationToken)
-               ?? new AppSettings();
+        var settings = await JsonSerializer.DeserializeAsync<AppSettings>(
+            stream,
+            SerializerOptions,
+            cancellationToken);
+
+        settings ??= new AppSettings();
+        settings.OpenNotes ??= [];
+        return settings;
     }
 
     /// <inheritdoc />
@@ -91,12 +94,17 @@ public sealed class JsonAppSettingsService : IAppSettingsService
         }
         finally
         {
-            if (File.Exists(temporaryPath))
+            try
             {
-                File.Delete(temporaryPath);
+                if (File.Exists(temporaryPath))
+                {
+                    File.Delete(temporaryPath);
+                }
             }
-
-            _saveLock.Release();
+            finally
+            {
+                _saveLock.Release();
+            }
         }
     }
 }
