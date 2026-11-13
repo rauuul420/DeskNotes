@@ -93,7 +93,7 @@ public sealed class AppSettingsServiceTests
     }
 
     [Fact]
-    public async Task LoadAsync_NormalizesNullOpenNotesCollection()
+    public async Task LoadAsync_NormalizesNullSettingsCollections()
     {
         var directory = CreateTemporaryDirectory();
 
