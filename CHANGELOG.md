@@ -30,4 +30,4 @@ Los cambios relevantes de DeskNotes se registrarán aquí. El formato sigue una 
 - Añadir pruebas para comprobar que la biblioteca se conserva aunque no haya ventanas abiertas.
 
 ### Nota de estado
-Estas funcionalidades están en una rama de desarrollo. La compilación Release y las 16 pruebas automatizadas pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404; la comprobación manual de la interfaz y la restauración de ventanas sigue pendiente. Todavía no forman parte de una versión publicada.
+Estas funcionalidades están en una rama de desarrollo. La compilación Release y las 21 pruebas automatizadas pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404; la comprobación manual de la interfaz y la restauración de ventanas sigue pendiente. Todavía no forman parte de una versión publicada.
