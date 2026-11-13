@@ -26,8 +26,8 @@ internal sealed class DesktopLayerService : IDisposable
     private const uint SmtoAbortIfHung = 0x0002;
     private const uint GaParent = 1;
     private const uint DesktopWorkerMessage = 0x052C;
-    private const nuint ModernWorkerWParam = 0x000D;
-    private const nint ModernWorkerLParam = 0x0001;
+    private static readonly nuint ModernWorkerWParam = 0x000D;
+    private static readonly nint ModernWorkerLParam = 0x0001;
 
     private readonly Dictionary<IntPtr, Attachment> _widgets = [];
     private readonly DispatcherTimer _shellPoll;
@@ -262,7 +262,7 @@ internal sealed class DesktopLayerService : IDisposable
         public uint PlatformId;
 
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
-        public string ServicePack;
+        public string? ServicePack;
     }
 
     [DllImport("ntdll.dll")]
