@@ -195,12 +195,15 @@ public partial class NoteWindow : Window
             targetPath = System.IO.Path.GetFullPath(dialog.FileName);
         }
 
+        var destinationPath = targetPath
+            ?? throw new InvalidOperationException("A destination path is required to save a note.");
+
         try
         {
             _note.Content = EditorTextBox.Text;
 
             var isDifferentDestination = !string.IsNullOrWhiteSpace(_filePath) &&
-                !string.Equals(_filePath, targetPath, StringComparison.OrdinalIgnoreCase);
+                !string.Equals(_filePath, destinationPath, StringComparison.OrdinalIgnoreCase);
 
             if (isDifferentDestination)
             {
@@ -209,13 +212,13 @@ public partial class NoteWindow : Window
                 // against the destination file.
                 var copy = new Note
                 {
-                    Title = System.IO.Path.GetFileNameWithoutExtension(targetPath),
+                    Title = System.IO.Path.GetFileNameWithoutExtension(destinationPath),
                     Content = _note.Content,
                     CreatedAt = _note.CreatedAt,
                     UpdatedAt = _note.UpdatedAt
                 };
 
-                await _noteFileService.SaveAsync(copy, targetPath!);
+                await _noteFileService.SaveAsync(copy, destinationPath);
 
                 _note.SourceLastWriteTimeUtc = copy.SourceLastWriteTimeUtc;
                 _note.SourceLength = copy.SourceLength;
@@ -223,12 +226,12 @@ public partial class NoteWindow : Window
             }
             else
             {
-                await _noteFileService.SaveAsync(_note, targetPath!);
+                await _noteFileService.SaveAsync(_note, destinationPath);
             }
 
             // Keep the current document path unchanged until the write succeeds.
-            _filePath = targetPath;
-            _note.Title = System.IO.Path.GetFileNameWithoutExtension(targetPath);
+            _filePath = destinationPath;
+            _note.Title = System.IO.Path.GetFileNameWithoutExtension(destinationPath);
             _note.UpdatedAt = DateTimeOffset.UtcNow;
             _savedContent = EditorTextBox.Text;
             _isDirty = false;
