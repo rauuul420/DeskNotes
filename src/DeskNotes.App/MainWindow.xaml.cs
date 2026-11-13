@@ -28,6 +28,8 @@ public partial class MainWindow : Window
     private bool _isRestoring;
     private bool _isClosing;
     private bool _allowClose;
+    private bool _autoSaveEnabled;
+    private int _autoSaveIntervalSeconds = 10;
 
     public MainWindow()
     {
@@ -52,6 +54,10 @@ public partial class MainWindow : Window
         try
         {
             var settings = await _settingsService.LoadAsync();
+            _autoSaveEnabled = settings.AutoSaveEnabled;
+            _autoSaveIntervalSeconds = settings.AutoSaveIntervalSeconds is 5 or 10 or 30 or 60 ? settings.AutoSaveIntervalSeconds : 10;
+            AutoSaveCheckBox.IsChecked = _autoSaveEnabled;
+            AutoSaveIntervalComboBox.SelectedIndex = _autoSaveIntervalSeconds switch { 5 => 0, 30 => 2, 60 => 3, _ => 1 };
 
             foreach (var savedNote in settings.SavedNotes)
             {
@@ -182,6 +188,25 @@ public partial class MainWindow : Window
     {
         SettingsView.Visibility = Visibility.Collapsed;
         NotesView.Visibility = Visibility.Visible;
+    }
+
+    private void AutoSaveEnabled_Changed(object sender, RoutedEventArgs e)
+    {
+        _autoSaveEnabled = AutoSaveCheckBox.IsChecked == true;
+        ApplyAutoSavePreferences();
+    }
+
+    private void AutoSaveInterval_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (AutoSaveIntervalComboBox.SelectedItem is not ComboBoxItem { Tag: string value } || !int.TryParse(value, out var intervalSeconds)) return;
+        _autoSaveIntervalSeconds = intervalSeconds;
+        ApplyAutoSavePreferences();
+    }
+
+    private void ApplyAutoSavePreferences()
+    {
+        foreach (var window in _noteWindows) window.ConfigureAutoSave(_autoSaveEnabled, _autoSaveIntervalSeconds);
+        ScheduleSettingsSave();
     }
 
     private async void OpenNote_Click(object sender, RoutedEventArgs e)
@@ -387,7 +412,7 @@ public partial class MainWindow : Window
         string? filePath,
         NoteWindowState? savedState = null)
     {
-        var window = new NoteWindow(note, filePath, _noteSaveService, savedState)
+        var window = new NoteWindow(note, filePath, _noteSaveService, savedState, _autoSaveEnabled, _autoSaveIntervalSeconds)
         {
             Owner = this
         };
@@ -484,6 +509,8 @@ public partial class MainWindow : Window
     {
         return new AppSettings
         {
+            AutoSaveEnabled = _autoSaveEnabled,
+            AutoSaveIntervalSeconds = _autoSaveIntervalSeconds,
             OpenNotes = _noteWindows
                 .Select(window => window.CaptureState())
                 .Where(state => state is not null)
