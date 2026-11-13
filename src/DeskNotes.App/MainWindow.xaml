@@ -98,6 +98,18 @@
                                Foreground="#9299AA" FontSize="12" Margin="0,5,0,0"/>
                 </StackPanel>
 
+                <TextBlock x:Name="EmptyLibraryText"
+                           Grid.Row="1"
+                           Text="Todavía no tienes notas guardadas. Crea una nota o abre un archivo TXT o MD para añadirlo aquí."
+                           Foreground="#747D90"
+                           FontSize="14"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           MaxWidth="420"
+                           Margin="20"/>
+
                 <ListBox x:Name="SavedNotesList"
                          Grid.Row="1"
                          Background="Transparent"
