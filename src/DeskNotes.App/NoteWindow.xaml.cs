@@ -258,7 +258,7 @@ public partial class NoteWindow : Window
             {
                 MessageBox.Show(
                     this,
-                    $"No se pudo guardar la nota.\\n\\n{exception.Message}",
+                    $"No se pudo guardar la nota.\n\n{exception.Message}",
                     "Error al guardar",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
