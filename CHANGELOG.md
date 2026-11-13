@@ -35,6 +35,14 @@ Primera versión preliminar de DeskNotes para validar el MVP en Windows.
 ## [Sin publicar]
 
 ### Añadido
+- Opción experimental para integrar los widgets en la capa del escritorio, entre el fondo y los iconos, compatible mediante rutas Win32 diferenciadas para las composiciones clásicas y modernas de Windows 10/11.
+- Persistencia de la preferencia de capa del escritorio y aplicación automática a widgets existentes y nuevos.
+
+### Notas técnicas
+- La integración depende de detalles internos no documentados de Explorer; si no se detecta una jerarquía compatible, DeskNotes conserva los widgets como ventanas normales.
+- El control «Mantener encima» queda temporalmente deshabilitado mientras un widget está en la capa del escritorio y recupera su estado al salir de ella.
+
+### Añadido
 - Preferencia de guardado automático para notas vinculadas a archivos, desactivada por defecto.
 - Intervalos configurables de 5, 10, 30 o 60 segundos desde la última edición.
 - Persistencia de las preferencias de guardado automático entre sesiones.
