@@ -110,7 +110,11 @@ public partial class NoteWindow : Window
             SystemParameters.VirtualScreenHeight);
 
         var windowBounds = new Rect(state.Left, state.Top, state.Width, state.Height);
-        return virtualScreen.IntersectsWith(windowBounds);
+        var visibleBounds = Rect.Intersect(virtualScreen, windowBounds);
+
+        return !visibleBounds.IsEmpty &&
+               visibleBounds.Width >= 100 &&
+               visibleBounds.Height >= 100;
     }
 
     private void OnPlacementChanged(object? sender, EventArgs e)
@@ -170,7 +174,7 @@ public partial class NoteWindow : Window
                 return false;
             }
 
-            _filePath = dialog.FileName;
+            _filePath = System.IO.Path.GetFullPath(dialog.FileName);
         }
 
         try
