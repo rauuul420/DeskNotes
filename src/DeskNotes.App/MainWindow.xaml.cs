@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Threading;
 using DeskNotes.Core.Interfaces;
 using DeskNotes.Core.Models;
+using DeskNotes.Core.Services;
 using DeskNotes.Infrastructure.FileSystem;
 using DeskNotes.Infrastructure.Persistence;
 using Microsoft.Win32;
@@ -16,6 +17,7 @@ namespace DeskNotes.App;
 public partial class MainWindow : Window
 {
     private readonly INoteFileService _noteFileService = new NoteFileService();
+    private readonly NoteSaveService _noteSaveService;
     private readonly IAppSettingsService _settingsService = new JsonAppSettingsService();
     private readonly List<NoteWindow> _noteWindows = [];
     private readonly DispatcherTimer _settingsSaveTimer;
@@ -26,6 +28,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _noteSaveService = new NoteSaveService(_noteFileService);
 
         _settingsSaveTimer = new DispatcherTimer
         {
@@ -142,7 +145,7 @@ public partial class MainWindow : Window
         string? filePath,
         NoteWindowState? savedState = null)
     {
-        var window = new NoteWindow(note, filePath, _noteFileService, savedState)
+        var window = new NoteWindow(note, filePath, _noteSaveService, savedState)
         {
             Owner = this
         };

@@ -8,7 +8,7 @@ DeskNotes busca ofrecer una forma sencilla de mantener a la vista notas y docume
 
 ## Estado del proyecto
 
-El proyecto está desarrollando su primer MVP. Ya existe un flujo de creación, apertura y edición en ventanas independientes, con almacenamiento TXT/Markdown y protección frente a cambios externos. La compilación Release y las pruebas automatizadas pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404. La persistencia y restauración de ventanas está en desarrollo en una segunda rama.
+El proyecto está desarrollando su primer MVP. Ya existe un flujo de creación, apertura y edición en ventanas independientes, con almacenamiento TXT/Markdown y protección frente a cambios externos. La compilación Release y las pruebas automatizadas pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404. La persistencia/restauración de ventanas y «Guardar como» están implementados en ramas de desarrollo. La lógica de guardado se está extrayendo a Core para poder probarla sin iniciar WPF.
 
 Consulta la [hoja de ruta](docs/roadmap.md) para conocer las fases previstas y los [requisitos](docs/requirements.md) para ver el alcance funcional.
 
@@ -59,6 +59,7 @@ DeskNotes/
 │   ├── DeskNotes.Core/
 │   └── DeskNotes.Infrastructure/
 ├── tests/
+│   ├── DeskNotes.Core.Tests/
 │   └── DeskNotes.Infrastructure.Tests/
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
