@@ -68,12 +68,13 @@ public sealed class NoteFileService : INoteFileService
             directory,
             $".{Path.GetFileName(fullPath)}.{Guid.NewGuid():N}.tmp");
 
+        var contentBytes = Utf8WithoutBom.GetBytes(note.Content);
+
         try
         {
-            await File.WriteAllTextAsync(
+            await File.WriteAllBytesAsync(
                 temporaryPath,
-                note.Content,
-                Utf8WithoutBom,
+                contentBytes,
                 cancellationToken);
 
             if (note.SourceLastWriteTimeUtc is not null &&
@@ -104,13 +105,12 @@ public sealed class NoteFileService : INoteFileService
             cancellationToken.ThrowIfCancellationRequested();
             File.Move(temporaryPath, fullPath, overwrite: true);
 
-            var savedBytes = await File.ReadAllBytesAsync(fullPath, cancellationToken);
             var savedFile = new FileInfo(fullPath);
             savedFile.Refresh();
 
             note.SourceLastWriteTimeUtc = savedFile.LastWriteTimeUtc;
-            note.SourceLength = savedFile.Length;
-            note.SourceSha256 = Convert.ToHexString(SHA256.HashData(savedBytes));
+            note.SourceLength = contentBytes.Length;
+            note.SourceSha256 = Convert.ToHexString(SHA256.HashData(contentBytes));
             note.UpdatedAt = DateTimeOffset.UtcNow;
         }
         finally
