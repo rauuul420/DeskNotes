@@ -490,7 +490,9 @@ public partial class MainWindow : Window
     {
         try
         {
-            await _settingsService.SaveAsync(CreateCurrentSettings());
+            var settings = CreateCurrentSettings();
+            settings.OpenNotes = openNoteStates;
+            await _settingsService.SaveAsync(settings);
         }
         catch (Exception exception)
         {
@@ -521,6 +523,11 @@ public partial class MainWindow : Window
         _settingsSaveTimer.Stop();
 
         var windowsToClose = _noteWindows.ToArray();
+        var openNoteStates = windowsToClose
+            .Select(window => window.CaptureState())
+            .Where(state => state is not null)
+            .Cast<NoteWindowState>()
+            .ToList();
 
         foreach (var window in windowsToClose)
         {
