@@ -1,0 +1,77 @@
+name: Windows installer
+
+on:
+  push:
+    branches:
+      - "feature/nsis-installer"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.404
+
+      - name: Install NSIS
+        run: choco install nsis --yes --no-progress
+
+      - name: Restore
+        run: dotnet restore DeskNotes.slnx
+
+      - name: Build Release
+        run: dotnet build DeskNotes.slnx --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test DeskNotes.slnx --configuration Release --no-build --verbosity normal
+
+      - name: Publish single-file application (framework-dependent)
+        shell: pwsh
+        run: ./packaging/publish.ps1
+
+      - name: Build NSIS installer
+        shell: pwsh
+        run: |
+          $outputDir = Join-Path $PWD "artifacts/installer"
+          $publishDir = Join-Path $PWD "artifacts/publish"
+          $nsisPath = Join-Path ${env:ProgramFiles(x86)} "NSIS/makensis.exe"
+
+          New-Item -ItemType Directory -Force $outputDir | Out-Null
+
+          if (-not (Test-Path $nsisPath)) {
+            throw "No se ha encontrado makensis.exe en: $nsisPath"
+          }
+
+          $nsisArgs = @(
+            "/DAPP_VERSION=0.1.0-alpha",
+            "/DAPP_VERSION_NUM=0.1.0.0",
+            "/DAPP_FILE_VERSION=0.1.0",
+            "/DPUBLISH_DIR=$publishDir",
+            "/DOUTPUT_DIR=$outputDir",
+            "packaging/nsis/DeskNotes.nsi"
+          )
+
+          & $nsisPath @nsisArgs
+          if ($LASTEXITCODE -ne 0) {
+            throw "NSIS ha fallado con exit code $LASTEXITCODE."
+          }
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v6
+        with:
+          name: DeskNotes-Setup-0.1.0-win-x64
+          path: artifacts/installer/DeskNotes-Setup-0.1.0.exe
+          if-no-files-found: error
+          retention-days: 14

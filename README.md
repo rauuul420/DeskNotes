@@ -102,6 +102,25 @@ dotnet run --project src/DeskNotes.App/DeskNotes.App.csproj
 
 La compilación y la ejecución deben realizarse en Windows, ya que el proyecto de interfaz utiliza WPF.
 
+## Empaquetado para Windows
+
+La distribución se prepara mediante NSIS. El instalador final se denomina `DeskNotes-Setup-0.1.0.exe` y realiza una instalación para todos los usuarios en `C:\Program Files\DeskNotes`, por lo que solicita permisos de administrador.
+
+La publicación genera un único ejecutable de aplicación para `win-x64` con .NET 10 framework-dependent (`SelfContained=false`, `PublishSingleFile=true`). **No incluye el runtime de .NET**: el equipo de destino debe disponer de `Microsoft .NET 10 Desktop Runtime x64`. El instalador comprueba la presencia de la versión 10 en la ubicación estándar de .NET x64. Si no la encuentra, ofrece abrir la página oficial de descarga y cancela esa ejecución; después de instalar el runtime, hay que volver a ejecutar el instalador.
+
+La desinstalación elimina los archivos de la aplicación y sus accesos directos, pero conserva `%LocalAppData%\DeskNotes`, donde se guardan los ajustes del usuario.
+
+En Windows, con .NET SDK 10.0.404 y NSIS instalados, ejecutar desde la raíz:
+
+```powershell
+./packaging/publish.ps1
+New-Item -ItemType Directory -Force artifacts/installer
+$nsisPath = Join-Path ${env:ProgramFiles(x86)} "NSIS/makensis.exe"
+& $nsisPath /DAPP_VERSION=0.1.0-alpha /DAPP_VERSION_NUM=0.1.0.0 /DAPP_FILE_VERSION=0.1.0 "/DPUBLISH_DIR=$PWD\artifacts\publish" "/DOUTPUT_DIR=$PWD\artifacts\installer" packaging/nsis/DeskNotes.nsi
+```
+
+El instalador se genera en `artifacts/installer/DeskNotes-Setup-0.1.0.exe`. La compilación automatizada se encuentra en `.github/workflows/installer.yml` y publica el instalador como artefacto de GitHub Actions.
+
 ## Principios del proyecto
 
 1. Los archivos del usuario son la fuente original del contenido.

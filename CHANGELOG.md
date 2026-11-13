@@ -19,15 +19,18 @@ Primera versión preliminar de DeskNotes para validar el MVP en Windows.
 - Apertura del editor de la nota desde el widget mediante doble clic en la parte superior o el botón «Editar».
 - Persistencia y restauración de widgets y sus preferencias.
 - Pruebas automatizadas para lógica de almacenamiento, biblioteca y guardado.
+- Instalador de Windows mediante NSIS, con detección de .NET 10 Desktop Runtime x64, accesos directos y desinstalador.
 
 ### Limitaciones conocidas
 - La edición del contenido directamente dentro del widget no está implementada. Para editar, el widget abre el editor de la nota.
 - Los widgets son ventanas WPF flotantes; todavía no se integran en la superficie del escritorio detrás de los iconos.
 - No hay guardado automático ni vista previa renderizada de Markdown.
+- El instalador requiere que Microsoft .NET 10 Desktop Runtime x64 esté instalado previamente; no distribuye el runtime.
 
 ### Validación
 - Compilación Release y pruebas automatizadas completadas correctamente en GitHub Actions (Windows Server 2025, .NET SDK 10.0.404).
 - Flujos principales y restauración de ventanas/widgets comprobados manualmente en Windows.
+- Instalador NSIS compilado y ejecutado manualmente en Windows con .NET 10 Desktop Runtime x64 instalado.
 
 ## [Sin publicar]
 
