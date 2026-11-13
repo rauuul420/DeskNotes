@@ -8,7 +8,7 @@ DeskNotes busca ofrecer una forma sencilla de mantener a la vista notas y docume
 
 ## Estado del proyecto
 
-El proyecto está desarrollando su primer MVP. Ya existe una base de almacenamiento TXT/Markdown con pruebas y se está incorporando el flujo de creación, apertura y edición en ventanas independientes. La implementación actual está pendiente de validación completa en Windows.
+El proyecto está desarrollando su primer MVP. Ya existe una base de almacenamiento TXT/Markdown con pruebas y se está incorporando el flujo de creación, apertura y edición en ventanas independientes. La compilación Release y las 10 pruebas automatizadas pasan en GitHub Actions sobre Windows Server 2025 con .NET SDK 10.0.404. Falta la comprobación manual de la interfaz en un escritorio Windows.
 
 Consulta la [hoja de ruta](docs/roadmap.md) para conocer las fases previstas y los [requisitos](docs/requirements.md) para ver el alcance funcional.
 
