@@ -146,27 +146,45 @@ public partial class NoteWindow : Window
         await SaveNoteAsync();
     }
 
+    private async void SaveAsButton_Click(object sender, RoutedEventArgs e)
+    {
+        await SaveNoteAsync(saveAs: true);
+    }
+
     private async void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.S &&
-            Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        if (e.Key != Key.S || !Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
-            e.Handled = true;
+            return;
+        }
+
+        e.Handled = true;
+
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+        {
+            await SaveNoteAsync(saveAs: true);
+        }
+        else
+        {
             await SaveNoteAsync();
         }
     }
 
-    private async Task<bool> SaveNoteAsync()
+    private async Task<bool> SaveNoteAsync(bool saveAs = false)
     {
-        if (string.IsNullOrWhiteSpace(_filePath))
+        var targetPath = _filePath;
+
+        if (saveAs || string.IsNullOrWhiteSpace(targetPath))
         {
             var dialog = new SaveFileDialog
             {
-                Title = "Guardar nota",
+                Title = saveAs ? "Guardar nota como" : "Guardar nota",
                 Filter = "Archivo de texto (*.txt)|*.txt|Archivo Markdown (*.md)|*.md",
                 DefaultExt = ".txt",
                 AddExtension = true,
-                FileName = string.IsNullOrWhiteSpace(_note.Title) ? "Nueva nota" : _note.Title
+                FileName = string.IsNullOrWhiteSpace(_filePath)
+                    ? (string.IsNullOrWhiteSpace(_note.Title) ? "Nueva nota" : _note.Title)
+                    : System.IO.Path.GetFileName(_filePath)
             };
 
             if (dialog.ShowDialog(this) != true)
@@ -174,14 +192,46 @@ public partial class NoteWindow : Window
                 return false;
             }
 
-            _filePath = System.IO.Path.GetFullPath(dialog.FileName);
+            targetPath = System.IO.Path.GetFullPath(dialog.FileName);
         }
+
+        var destinationPath = targetPath
+            ?? throw new InvalidOperationException("A destination path is required to save a note.");
 
         try
         {
             _note.Content = EditorTextBox.Text;
-            await _noteFileService.SaveAsync(_note, _filePath);
-            _note.Title = System.IO.Path.GetFileNameWithoutExtension(_filePath);
+
+            var isDifferentDestination = !string.IsNullOrWhiteSpace(_filePath) &&
+                !string.Equals(_filePath, destinationPath, StringComparison.OrdinalIgnoreCase);
+
+            if (isDifferentDestination)
+            {
+                // A Save As operation creates a new file identity. Reusing the
+                // original file fingerprint would incorrectly report a conflict
+                // against the destination file.
+                var copy = new Note
+                {
+                    Title = System.IO.Path.GetFileNameWithoutExtension(destinationPath),
+                    Content = _note.Content,
+                    CreatedAt = _note.CreatedAt,
+                    UpdatedAt = _note.UpdatedAt
+                };
+
+                await _noteFileService.SaveAsync(copy, destinationPath);
+
+                _note.SourceLastWriteTimeUtc = copy.SourceLastWriteTimeUtc;
+                _note.SourceLength = copy.SourceLength;
+                _note.SourceSha256 = copy.SourceSha256;
+            }
+            else
+            {
+                await _noteFileService.SaveAsync(_note, destinationPath);
+            }
+
+            // Keep the current document path unchanged until the write succeeds.
+            _filePath = destinationPath;
+            _note.Title = System.IO.Path.GetFileNameWithoutExtension(destinationPath);
             _note.UpdatedAt = DateTimeOffset.UtcNow;
             _savedContent = EditorTextBox.Text;
             _isDirty = false;

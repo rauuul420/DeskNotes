@@ -16,6 +16,8 @@ Consulta la [hoja de ruta](docs/roadmap.md) para conocer las fases previstas y l
 
 - Crear notas nuevas y abrir archivos TXT y Markdown.
 - Editar y guardar el contenido en archivos normales UTF-8.
+- Guardar una nota en otra ubicación o con otro nombre mediante «Guardar como».
+- Usar Ctrl+S para guardar y Ctrl+Mayús+S para «Guardar como».
 - Mostrar cada nota en una ventana independiente.
 - Avisar de cambios sin guardar antes de cerrar.
 - Detectar modificaciones externas del archivo antes de sobrescribirlo.
