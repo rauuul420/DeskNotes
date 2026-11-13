@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using DeskNotes.Core.Services;
 using DeskNotes.Core.Models;
 using Microsoft.Win32;
@@ -21,6 +22,8 @@ public partial class NoteWindow : Window
     private bool _isDirty;
     private bool _isHandlingClose;
     private bool _allowClose;
+    private readonly DispatcherTimer _autoSaveTimer;
+    private bool _autoSaveEnabled;
 
     public event EventHandler? PlacementChanged;
 
@@ -34,12 +37,17 @@ public partial class NoteWindow : Window
         Note note,
         string? filePath,
         NoteSaveService noteSaveService,
-        NoteWindowState? savedState = null)
+        NoteWindowState? savedState = null,
+        bool autoSaveEnabled = false,
+        int autoSaveIntervalSeconds = 10)
     {
         ArgumentNullException.ThrowIfNull(note);
         ArgumentNullException.ThrowIfNull(noteSaveService);
 
         InitializeComponent();
+
+        _autoSaveTimer = new DispatcherTimer();
+        _autoSaveTimer.Tick += AutoSaveTimer_Tick;
 
         _note = note;
         _filePath = filePath;
@@ -66,6 +74,7 @@ public partial class NoteWindow : Window
 
         UpdateWindowTitle();
         StatusText.Text = filePath is null ? "Nota nueva" : "Archivo abierto";
+        ConfigureAutoSave(autoSaveEnabled, autoSaveIntervalSeconds);
     }
 
     public NoteWindowState? CaptureState()
@@ -137,6 +146,28 @@ public partial class NoteWindow : Window
         _isDirty = !string.Equals(EditorTextBox.Text, _savedContent, StringComparison.Ordinal);
         StatusText.Text = _isDirty ? "Cambios sin guardar" : "Sin cambios";
         UpdateWindowTitle();
+        ScheduleAutoSave();
+    }
+
+    public void ConfigureAutoSave(bool enabled, int intervalSeconds)
+    {
+        if (intervalSeconds is not (5 or 10 or 30 or 60)) intervalSeconds = 10;
+        _autoSaveEnabled = enabled;
+        _autoSaveTimer.Interval = TimeSpan.FromSeconds(intervalSeconds);
+        if (enabled) ScheduleAutoSave(); else _autoSaveTimer.Stop();
+    }
+
+    private void ScheduleAutoSave()
+    {
+        _autoSaveTimer.Stop();
+        if (_autoSaveEnabled && _isDirty && !string.IsNullOrWhiteSpace(_filePath)) _autoSaveTimer.Start();
+    }
+
+    private async void AutoSaveTimer_Tick(object? sender, EventArgs e)
+    {
+        _autoSaveTimer.Stop();
+        if (!_autoSaveEnabled || !_isDirty || string.IsNullOrWhiteSpace(_filePath)) return;
+        await SaveNoteAsync(showErrors: false);
     }
 
     private void AlwaysOnTopCheckBox_Click(object sender, RoutedEventArgs e)
@@ -174,7 +205,7 @@ public partial class NoteWindow : Window
         }
     }
 
-    private async Task<bool> SaveNoteAsync(bool saveAs = false)
+    private async Task<bool> SaveNoteAsync(bool saveAs = false, bool showErrors = true)
     {
         var targetPath = _filePath;
 
@@ -214,6 +245,7 @@ public partial class NoteWindow : Window
             _note.UpdatedAt = DateTimeOffset.UtcNow;
             _savedContent = EditorTextBox.Text;
             _isDirty = false;
+            _autoSaveTimer.Stop();
             StatusText.Text = $"Guardado · {DateTime.Now:HH:mm}";
             UpdateWindowTitle();
             OnPlacementChanged(this, EventArgs.Empty);
@@ -222,12 +254,20 @@ public partial class NoteWindow : Window
         }
         catch (Exception exception)
         {
-            MessageBox.Show(
-                this,
-                $"No se pudo guardar la nota.\n\n{exception.Message}",
-                "Error al guardar",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            if (showErrors)
+            {
+                MessageBox.Show(
+                    this,
+                    $"No se pudo guardar la nota.\\n\\n{exception.Message}",
+                    "Error al guardar",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            else
+            {
+                StatusText.Text = "Error en el guardado automático";
+            }
+
             return false;
         }
     }
