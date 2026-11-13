@@ -176,13 +176,21 @@ internal sealed class DesktopLayerService : IDisposable
         var foreground = GetForegroundWindow();
         var foregroundIsDesktop = foreground == host || foreground == GetAncestor(shellView, GaParent) ||
             IsForegroundDesktopWorker(foreground);
+        var foregroundIsWidget = _widgets.ContainsKey(foreground);
         var desktopVisible = DesktopLayerStatePolicy.ShouldShowDesktopBand(
             host != IntPtr.Zero && IsWindowVisible(host),
             foregroundIsDesktop,
-            _widgets.ContainsKey(foreground),
+            foregroundIsWidget,
             _desktopVisible);
 
-        if (!force && !shellChanged && desktopVisible == _desktopVisible) return;
+        if (!force && !shellChanged && desktopVisible == _desktopVisible)
+        {
+            // WPF may raise a clicked popup. Put it back behind the reference HWND
+            // without changing activation or keyboard focus.
+            if (foregroundIsWidget && _desktopVisible && _helperWindow != IntPtr.Zero)
+                _ = SetWindowPos(foreground, _helperWindow, 0, 0, 0, 0, PositionFlags);
+            return;
+        }
         _desktopVisible = desktopVisible;
 
         if (_desktopVisible && _desktopHost != IntPtr.Zero)
