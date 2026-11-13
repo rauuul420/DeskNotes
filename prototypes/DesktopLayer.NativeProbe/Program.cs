@@ -8,7 +8,7 @@ namespace DeskNotes.DesktopLayer.NativeProbe;
 internal static class Program
 {
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
         ProbeLog.Initialize();
         ProbeLog.Write($"OS={Environment.OSVersion.Version}; Architecture={RuntimeInformation.ProcessArchitecture}; PointerSize={IntPtr.Size * 8}");
@@ -18,13 +18,16 @@ internal static class Program
 
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
-        Application.Run(new ProbeForm(dpiReady));
+        var constantAlpha = args.Any(arg => string.Equals(arg, "--constant-alpha", StringComparison.OrdinalIgnoreCase));
+        ProbeLog.Write($"AlphaMode={(constantAlpha ? "SetLayeredWindowAttributes(255)" : "UpdateLayeredWindow(ULW_ALPHA)")}");
+        Application.Run(new ProbeForm(dpiReady, constantAlpha));
     }
 }
 
 internal sealed class ProbeForm : Form
 {
     private readonly Button _startButton = new() { Text = "Mostrar superficie nativa", AutoSize = true };
+    private readonly bool _constantAlpha;
     private readonly Button _stopButton = new() { Text = "Detener superficie", AutoSize = true, Enabled = false };
     private readonly TextBox _logBox = new()
     {
@@ -36,8 +39,9 @@ internal sealed class ProbeForm : Form
 
     private DesktopSurface? _surface;
 
-    public ProbeForm(bool dpiReady)
+    public ProbeForm(bool dpiReady, bool constantAlpha)
     {
+        _constantAlpha = constantAlpha;
         Text = "DeskNotes — Native Desktop Layer Probe";
         Width = 760;
         Height = 460;
@@ -64,7 +68,7 @@ internal sealed class ProbeForm : Form
     {
         try
         {
-            _surface = DesktopSurface.Create(ProbeLog.Write);
+            _surface = DesktopSurface.Create(ProbeLog.Write, _constantAlpha);
             _startButton.Enabled = false;
             _stopButton.Enabled = true;
             ProbeLog.Write("SUPERFICIE CREADA. La ventana de control se minimizará.");
@@ -114,6 +118,10 @@ internal sealed class DesktopSurface : IDisposable
     private const uint WsExToolWindow = 0x00000080;
     private const uint WsExNoActivate = 0x08000000;
     private const uint WsExNoRedirectionBitmap = 0x00200000;
+    private const uint LwaAlpha = 0x00000002;
+    private const uint SwpNoMove = 0x0002;
+    private const uint SwpNoSize = 0x0001;
+    private const uint WmPaint = 0x000F;
     private const uint WsChild = 0x40000000;
     private const uint WsVisible = 0x10000000;
     private const uint SwpNoActivate = 0x0010;
@@ -129,7 +137,8 @@ internal sealed class DesktopSurface : IDisposable
     private const uint GwHwndPrev = 3;
     private const uint ErrorClassAlreadyExists = 1410;
 
-    private static readonly WndProc WindowProcedure = NativeDefWindowProc;
+    private static readonly WndProc WindowProcedure = NativeWindowProcedure;
+    private static bool _constantAlphaMode;
     private static readonly string WindowClassName = "DeskNotes.NativeDesktopProbe.Window";
     private readonly Action<string> _log;
     private readonly IntPtr _hwnd;
@@ -147,8 +156,9 @@ internal sealed class DesktopSurface : IDisposable
         _previousBitmap = previousBitmap;
     }
 
-    public static DesktopSurface Create(Action<string> log)
+    public static DesktopSurface Create(Action<string> log, bool constantAlpha)
     {
+        _constantAlphaMode = constantAlpha;
         ArgumentNullException.ThrowIfNull(log);
 
         var progman = FindWindow("Progman", null);
@@ -165,6 +175,10 @@ internal sealed class DesktopSurface : IDisposable
         var shellView = FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
         if (shellView == IntPtr.Zero || GetParent(shellView) != progman)
             throw NativeFailure("SHELLDLL_DefView no es un hijo directo verificable de Progman.");
+
+        var workerW = FindWindowEx(progman, IntPtr.Zero, "WorkerW", null);
+        if (workerW == IntPtr.Zero || GetParent(workerW) != progman)
+            throw NativeFailure("No se encontró un WorkerW hijo directo de Progman.");
 
         var shellDpi = GetWindowDpiAwarenessContext(progman);
         var threadDpi = GetThreadDpiAwarenessContext();
@@ -193,6 +207,9 @@ internal sealed class DesktopSurface : IDisposable
         if (hwnd == IntPtr.Zero)
             throw NativeFailure("CreateWindowEx(WS_CHILD | WS_EX_LAYERED) falló.");
 
+        if (constantAlpha && !SetLayeredWindowAttributes(hwnd, 0, 255, LwaAlpha))
+            throw NativeFailure("SetLayeredWindowAttributes(alpha=255) falló.");
+
         IntPtr memoryDc = IntPtr.Zero;
         IntPtr bitmap = IntPtr.Zero;
         IntPtr previousBitmap = IntPtr.Zero;
@@ -204,6 +221,10 @@ internal sealed class DesktopSurface : IDisposable
 
             if (!SetWindowPos(hwnd, shellView, x, y, Width, Height, SwpNoActivate | SwpShowWindow))
                 throw NativeFailure("SetWindowPos detrás de SHELLDLL_DefView falló.");
+
+            if (!SetWindowPos(workerW, new IntPtr(1), 0, 0, 0, 0,
+                    SwpNoMove | SwpNoSize | SwpNoActivate))
+                throw NativeFailure("No se pudo enviar WorkerW al fondo del orden Z.");
 
             memoryDc = CreateCompatibleDC(IntPtr.Zero);
             if (memoryDc == IntPtr.Zero)
@@ -231,22 +252,28 @@ internal sealed class DesktopSurface : IDisposable
             if (previousBitmap == IntPtr.Zero || previousBitmap == new IntPtr(-1))
                 throw NativeFailure("SelectObject falló.");
 
-            var pixels = CreatePremultipliedPanel();
-            Marshal.Copy(pixels, 0, bits, pixels.Length);
-
-            var size = new SIZE { Width = Width, Height = Height };
-            var sourcePoint = new POINT { X = 0, Y = 0 };
-            var blend = new BLENDFUNCTION
+            if (!constantAlpha)
             {
-                BlendOp = AcSrcOver,
-                BlendFlags = 0,
-                SourceConstantAlpha = 255,
-                AlphaFormat = AcSrcAlpha
-            };
-
-            if (!UpdateLayeredWindow(hwnd, IntPtr.Zero, IntPtr.Zero, ref size,
-                    memoryDc, ref sourcePoint, 0, ref blend, UlwAlpha))
-                throw NativeFailure("UpdateLayeredWindow(ULW_ALPHA) falló.");
+                var pixels = CreatePremultipliedPanel();
+                Marshal.Copy(pixels, 0, bits, pixels.Length);
+                var size = new SIZE { Width = Width, Height = Height };
+                var sourcePoint = new POINT { X = 0, Y = 0 };
+                var blend = new BLENDFUNCTION
+                {
+                    BlendOp = AcSrcOver,
+                    BlendFlags = 0,
+                    SourceConstantAlpha = 255,
+                    AlphaFormat = AcSrcAlpha
+                };
+                if (!UpdateLayeredWindow(hwnd, IntPtr.Zero, IntPtr.Zero, ref size,
+                        memoryDc, ref sourcePoint, 0, ref blend, UlwAlpha))
+                    throw NativeFailure("UpdateLayeredWindow(ULW_ALPHA) falló.");
+            }
+            else
+            {
+                _ = InvalidateRect(hwnd, IntPtr.Zero, true);
+                _ = UpdateWindow(hwnd);
+            }
 
             var parent = GetParent(hwnd);
             var previous = GetWindow(hwnd, GwHwndPrev);
@@ -260,6 +287,9 @@ internal sealed class DesktopSurface : IDisposable
             log($"Progman={Format(progman)} pid={progmanPid}; ShellView={Format(shellView)} pid={shellViewPid}; Widget={Format(hwnd)} pid={widgetPid}");
             log($"Parent(widget)={Format(parent)}; previousZ={Format(previous)}; nextZ={Format(next)}");
             log($"Parent(widget)==Progman: {parent == progman}; previousZ==ShellView: {previous == shellView}");
+            log($"WorkerW={Format(workerW)}; WorkerW parent==Progman: {GetParent(workerW) == progman}; WorkerW nextZ={Format(GetWindow(workerW, GwHwndNext))}");
+            log($"WorkerW al final del orden Z de Progman: {GetWindow(workerW, GwHwndNext) == IntPtr.Zero}");
+            log($"AlphaMode={(constantAlpha ? "SetLayeredWindowAttributes(255)" : "UpdateLayeredWindow(ULW_ALPHA)")}");
             log($"Progman exStyle=0x{progmanExStyle:X}; widget style=0x{GetWindowLongPtr(hwnd, GwlStyle).ToInt64():X}; widget exStyle=0x{GetWindowLongPtr(hwnd, GwlExStyle).ToInt64():X}");
             var childAfter = IntPtr.Zero;
             while ((childAfter = FindWindowEx(progman, childAfter, null, null)) != IntPtr.Zero)
@@ -270,7 +300,7 @@ internal sealed class DesktopSurface : IDisposable
             }
             log($"Progman client={clientWidth}x{clientHeight}; widget rect=({rect.Left},{rect.Top},{rect.Right},{rect.Bottom})");
             log($"DPI Progman=0x{shellDpi.ToInt64():X}; DPI thread=0x{threadDpi.ToInt64():X}; equal={AreDpiAwarenessContextsEqual(shellDpi, threadDpi)}");
-            log("No se ha cambiado el Z-order de WorkerW.");
+            log("WorkerW se ha enviado al fondo del orden Z de Progman.");
 
             return new DesktopSurface(log, hwnd, memoryDc, bitmap, previousBitmap);
         }
@@ -285,6 +315,48 @@ internal sealed class DesktopSurface : IDisposable
             _ = DestroyWindow(hwnd);
             throw;
         }
+    }
+
+    private static IntPtr NativeWindowProcedure(IntPtr hwnd, uint message, UIntPtr wParam, IntPtr lParam)
+    {
+        if (_constantAlphaMode && message == WmPaint)
+        {
+            PaintConstantAlphaPanel(hwnd);
+            return IntPtr.Zero;
+        }
+        return NativeDefWindowProc(hwnd, message, wParam, lParam);
+    }
+
+    private static void PaintConstantAlphaPanel(IntPtr hwnd)
+    {
+        var hdc = BeginPaint(hwnd, out var paint);
+        if (hdc == IntPtr.Zero)
+            return;
+        try
+        {
+            if (!GetClientRect(hwnd, out var rect))
+                return;
+            var background = CreateSolidBrush(0x003A261C);
+            if (background != IntPtr.Zero)
+            {
+                _ = FillRect(hdc, ref rect, background);
+                _ = DeleteObject(background);
+            }
+            var border = CreateSolidBrush(0x005FA5F5);
+            if (border != IntPtr.Zero)
+            {
+                var top = new RECT { Left = 0, Top = 0, Right = rect.Right, Bottom = 4 };
+                var bottom = new RECT { Left = 0, Top = Math.Max(0, rect.Bottom - 4), Right = rect.Right, Bottom = rect.Bottom };
+                var left = new RECT { Left = 0, Top = 4, Right = 4, Bottom = Math.Max(4, rect.Bottom - 4) };
+                var right = new RECT { Left = Math.Max(0, rect.Right - 4), Top = 4, Right = rect.Right, Bottom = Math.Max(4, rect.Bottom - 4) };
+                _ = FillRect(hdc, ref top, border);
+                _ = FillRect(hdc, ref bottom, border);
+                _ = FillRect(hdc, ref left, border);
+                _ = FillRect(hdc, ref right, border);
+                _ = DeleteObject(border);
+            }
+        }
+        finally { _ = EndPaint(hwnd, ref paint); }
     }
 
     private static byte[] CreatePremultipliedPanel()
@@ -384,6 +456,18 @@ internal sealed class DesktopSurface : IDisposable
     private struct RECT { public int Left, Top, Right, Bottom; }
 
     [StructLayout(LayoutKind.Sequential)]
+    private struct PAINTSTRUCT
+    {
+        public IntPtr Hdc;
+        public int Erase;
+        public RECT PaintRect;
+        public int Restore;
+        public int IncUpdate;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
+        public byte[] Reserved;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     private struct POINT { public int X, Y; }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -447,6 +531,27 @@ internal sealed class DesktopSurface : IDisposable
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool IsWindow(IntPtr hwnd);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint colorKey, byte alpha, uint flags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr BeginPaint(IntPtr hwnd, out PAINTSTRUCT paint);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool EndPaint(IntPtr hwnd, ref PAINTSTRUCT paint);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool InvalidateRect(IntPtr hwnd, IntPtr rect, bool erase);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool UpdateWindow(IntPtr hwnd);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern int FillRect(IntPtr hdc, ref RECT rect, IntPtr brush);
+
+    [DllImport("gdi32.dll", SetLastError = true)]
+    private static extern IntPtr CreateSolidBrush(uint colorRef);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool DestroyWindow(IntPtr hwnd);
