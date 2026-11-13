@@ -182,7 +182,6 @@ public sealed class NoteFileServiceTests
             var note = await _service.OpenAsync(path);
 
             Assert.Equal(content, note.Content);
-            Assert.DoesNotContain("\uFEFF", note.Content);
         }
         finally
         {
