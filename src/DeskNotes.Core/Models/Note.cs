@@ -37,6 +37,11 @@ public sealed class Note
     public DateTimeOffset? SourceLastWriteTimeUtc { get; set; }
 
     /// <summary>
+    /// Gets or sets the SHA-256 hash of the last known source file contents.
+    /// </summary>
+    public string? SourceSha256 { get; set; }
+
+    /// <summary>
     /// Gets or sets the last known size of the source file in bytes.
     /// </summary>
     public long? SourceLength { get; set; }
