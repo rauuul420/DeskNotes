@@ -28,6 +28,8 @@ public partial class NoteWindow : Window
 
     public string? FilePath => _filePath;
 
+    public string CurrentContent => EditorTextBox.Text;
+
     public NoteWindow(
         Note note,
         string? filePath,
