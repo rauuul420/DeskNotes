@@ -172,6 +172,18 @@ public partial class MainWindow : Window
         OpenNoteWindow(new Note(), filePath: null);
     }
 
+    private void OpenSettings_Click(object sender, RoutedEventArgs e)
+    {
+        NotesView.Visibility = Visibility.Collapsed;
+        SettingsView.Visibility = Visibility.Visible;
+    }
+
+    private void BackToNotes_Click(object sender, RoutedEventArgs e)
+    {
+        SettingsView.Visibility = Visibility.Collapsed;
+        NotesView.Visibility = Visibility.Visible;
+    }
+
     private async void OpenNote_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
