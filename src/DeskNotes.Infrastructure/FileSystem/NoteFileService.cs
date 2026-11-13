@@ -130,7 +130,13 @@ public sealed class NoteFileService : INoteFileService
             Encoding.UTF8,
             detectEncodingFromByteOrderMarks: true);
 
-        return reader.ReadToEnd();
+        var content = reader.ReadToEnd();
+
+        // StreamReader normally consumes a detected preamble. Keep this explicit so
+        // the domain content never starts with a stray BOM character.
+        return content.Length > 0 && content[0] == '\uFEFF'
+            ? content[1..]
+            : content;
     }
 
     private static IOException CreateExternalChangeException() =>
