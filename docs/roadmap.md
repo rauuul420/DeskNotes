@@ -24,6 +24,8 @@ Esta hoja de ruta describe el orden propuesto de desarrollo. Las fases son objet
 
 **Objetivo:** disponer de una aplicación útil para crear, abrir y editar notas en ventanas flotantes.
 
+**Estado de implementación:** el primer flujo de interfaz y almacenamiento está en desarrollo en `feature/note-window-mvp`. Todavía no se considera terminado: falta validar compilación, pruebas y comportamiento real en Windows.
+
 ### Gestión de notas y archivos
 
 - [ ] Crear una nota nueva.
