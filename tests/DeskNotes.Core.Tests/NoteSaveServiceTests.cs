@@ -65,7 +65,7 @@ public sealed class NoteSaveServiceTests
                 Path.Combine(Path.GetTempPath(), "copy.txt")));
 
         Assert.Equal(originalTimestamp, note.SourceLastWriteTimeUtc);
-        Assert.Equal(7, note.SourceLength);
+        Assert.Equal(7L, note.SourceLength!.Value);
         Assert.Equal("original-hash", note.SourceSha256);
     }
 
