@@ -6,6 +6,16 @@ namespace DeskNotes.Core.Models;
 public sealed class AppSettings
 {
     /// <summary>
+    /// Gets or sets whether existing file-backed notes are saved automatically.
+    /// </summary>
+    public bool AutoSaveEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the idle interval, in seconds, before an automatic save.
+    /// </summary>
+    public int AutoSaveIntervalSeconds { get; set; } = 10;
+
+    /// <summary>
     /// Gets or sets the note windows that should be restored on the next launch.
     /// </summary>
     public List<NoteWindowState> OpenNotes { get; set; } = [];

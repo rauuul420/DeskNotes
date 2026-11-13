@@ -34,4 +34,9 @@ Primera versión preliminar de DeskNotes para validar el MVP en Windows.
 
 ## [Sin publicar]
 
+### Añadido
+- Preferencia de guardado automático para notas vinculadas a archivos, desactivada por defecto.
+- Intervalos configurables de 5, 10, 30 o 60 segundos desde la última edición.
+- Persistencia de las preferencias de guardado automático entre sesiones.
+
 Los cambios posteriores a esta versión se registrarán aquí.
