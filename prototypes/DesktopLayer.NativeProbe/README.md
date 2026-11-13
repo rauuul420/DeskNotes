@@ -11,6 +11,22 @@ dotnet build prototypes/DesktopLayer.NativeProbe/DesktopLayer.NativeProbe.csproj
 dotnet run --project prototypes/DesktopLayer.NativeProbe/DesktopLayer.NativeProbe.csproj -c Release
 \`\`\`
 
+## Alpha variants
+
+Run the default per-pixel alpha implementation:
+
+```powershell
+dotnet run --project prototypes/DesktopLayer.NativeProbe/DesktopLayer.NativeProbe.csproj -c Release
+```
+
+Run the Lively-style constant-alpha implementation in a separate process:
+
+```powershell
+dotnet run --project prototypes/DesktopLayer.NativeProbe/DesktopLayer.NativeProbe.csproj -c Release -- --constant-alpha
+```
+
+Do not switch alpha APIs on the same HWND. Stop the process and relaunch with the other mode so each path receives a newly created layered window.
+
 ## Run
 
 1. Start the probe.
