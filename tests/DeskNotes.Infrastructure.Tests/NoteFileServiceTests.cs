@@ -1,5 +1,6 @@
 using DeskNotes.Core.Models;
 using DeskNotes.Infrastructure.FileSystem;
+using Xunit;
 
 namespace DeskNotes.Infrastructure.Tests;
 
