@@ -14,7 +14,7 @@ using Microsoft.Win32;
 namespace DeskNotes.App;
 
 /// <summary>
-/// Main application window. It manages the saved-note library and restores the previous session.
+/// Main application window. It manages the saved-note library, editor windows and desktop widgets.
 /// </summary>
 public partial class MainWindow : Window
 {
@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     private readonly NoteSaveService _noteSaveService;
     private readonly IAppSettingsService _settingsService = new JsonAppSettingsService();
     private readonly List<NoteWindow> _noteWindows = [];
+    private readonly List<NoteWidgetWindow> _noteWidgets = [];
     private readonly ObservableCollection<SavedNote> _savedNotes = [];
     private readonly DispatcherTimer _settingsSaveTimer;
     private bool _isRestoring;
@@ -102,6 +103,48 @@ public partial class MainWindow : Window
                         this,
                         $"No se pudo restaurar la nota '{savedWindow.FilePath}'.\n\n{exception.Message}",
                         "No se pudo restaurar una nota",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+            }
+
+            var restoredWidgetPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var widgetState in settings.NoteWidgets)
+            {
+                if (string.IsNullOrWhiteSpace(widgetState.FilePath))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var fullPath = Path.GetFullPath(widgetState.FilePath);
+
+                    if (!restoredWidgetPaths.Add(fullPath) || !File.Exists(fullPath))
+                    {
+                        continue;
+                    }
+
+                    var openEditor = _noteWindows.FirstOrDefault(window =>
+                        string.Equals(window.FilePath, fullPath, StringComparison.OrdinalIgnoreCase));
+
+                    var note = openEditor is null
+                        ? await _noteFileService.OpenAsync(fullPath)
+                        : null;
+
+                    OpenNoteWidget(
+                        fullPath,
+                        openEditor is null ? note!.Title : Path.GetFileNameWithoutExtension(fullPath),
+                        openEditor?.CurrentContent ?? note!.Content,
+                        widgetState);
+                }
+                catch (Exception exception)
+                {
+                    MessageBox.Show(
+                        this,
+                        $"No se pudo restaurar el widget de '{widgetState.FilePath}'.\n\n{exception.Message}",
+                        "No se pudo restaurar un widget",
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);
                 }
@@ -198,6 +241,116 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void CreateWidget_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string filePath })
+        {
+            return;
+        }
+
+        await CreateNoteWidgetAsync(filePath);
+    }
+
+    private async Task CreateNoteWidgetAsync(string filePath)
+    {
+        try
+        {
+            var fullPath = Path.GetFullPath(filePath);
+            var existingWidget = _noteWidgets.FirstOrDefault(widget =>
+                string.Equals(widget.FilePath, fullPath, StringComparison.OrdinalIgnoreCase));
+
+            if (existingWidget is not null)
+            {
+                existingWidget.Activate();
+                return;
+            }
+
+            if (!File.Exists(fullPath))
+            {
+                MessageBox.Show(
+                    this,
+                    $"No se encuentra el archivo de esta nota:\n\n{fullPath}",
+                    "Archivo no encontrado",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            var openEditor = _noteWindows.FirstOrDefault(window =>
+                string.Equals(window.FilePath, fullPath, StringComparison.OrdinalIgnoreCase));
+
+            var note = openEditor is null
+                ? await _noteFileService.OpenAsync(fullPath)
+                : null;
+
+            OpenNoteWidget(
+                fullPath,
+                openEditor is null ? note!.Title : Path.GetFileNameWithoutExtension(fullPath),
+                openEditor?.CurrentContent ?? note!.Content);
+
+            await SaveCurrentSettingsAsync();
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show(
+                this,
+                $"No se pudo crear el widget.\n\n{exception.Message}",
+                "Error al crear widget",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private void OpenNoteWidget(
+        string filePath,
+        string title,
+        string content,
+        NoteWidgetState? savedState = null)
+    {
+        var fullPath = Path.GetFullPath(filePath);
+        var existingWidget = _noteWidgets.FirstOrDefault(widget =>
+            string.Equals(widget.FilePath, fullPath, StringComparison.OrdinalIgnoreCase));
+
+        if (existingWidget is not null)
+        {
+            existingWidget.UpdateContent(title, content);
+            existingWidget.Activate();
+            return;
+        }
+
+        var widget = new NoteWidgetWindow(fullPath, title, content, savedState);
+        widget.PlacementChanged += NoteWidget_PlacementChanged;
+        widget.EditRequested += NoteWidget_EditRequested;
+        widget.Closed += NoteWidget_Closed;
+        _noteWidgets.Add(widget);
+
+        widget.Show();
+    }
+
+    private void NoteWidget_EditRequested(NoteWidgetWindow widget)
+    {
+        _ = OpenSavedNoteAsync(widget.FilePath);
+    }
+
+    private void NoteWidget_PlacementChanged(object? sender, EventArgs e)
+    {
+        ScheduleSettingsSave();
+    }
+
+    private void NoteWidget_Closed(object? sender, EventArgs e)
+    {
+        if (sender is not NoteWidgetWindow widget)
+        {
+            return;
+        }
+
+        widget.PlacementChanged -= NoteWidget_PlacementChanged;
+        widget.EditRequested -= NoteWidget_EditRequested;
+        widget.Closed -= NoteWidget_Closed;
+        _noteWidgets.Remove(widget);
+        ScheduleSettingsSave();
+    }
+
     private async void RemoveSavedNote_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string filePath })
@@ -240,7 +393,13 @@ public partial class MainWindow : Window
 
     private void NoteWindow_SavedToFile(NoteWindow window, string filePath)
     {
-        AddSavedNote(filePath, Path.GetFileNameWithoutExtension(filePath));
+        var title = Path.GetFileNameWithoutExtension(filePath);
+        AddSavedNote(filePath, title);
+
+        var widget = _noteWidgets.FirstOrDefault(item =>
+            string.Equals(item.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+
+        widget?.UpdateContent(title, window.CurrentContent);
         _ = SaveCurrentSettingsAsync();
     }
 
@@ -309,21 +468,29 @@ public partial class MainWindow : Window
         await SaveCurrentSettingsAsync();
     }
 
-    private async Task SaveCurrentSettingsAsync()
+    private AppSettings CreateCurrentSettings()
     {
-        var settings = new AppSettings
+        return new AppSettings
         {
             OpenNotes = _noteWindows
                 .Select(window => window.CaptureState())
                 .Where(state => state is not null)
                 .Cast<NoteWindowState>()
                 .ToList(),
-            SavedNotes = _savedNotes.ToList()
+            SavedNotes = _savedNotes.ToList(),
+            NoteWidgets = _noteWidgets
+                .Select(widget => widget.CaptureState())
+                .Where(state => state is not null)
+                .Cast<NoteWidgetState>()
+                .ToList()
         };
+    }
 
+    private async Task SaveCurrentSettingsAsync()
+    {
         try
         {
-            await _settingsService.SaveAsync(settings);
+            await _settingsService.SaveAsync(CreateCurrentSettings());
         }
         catch (Exception exception)
         {
@@ -365,19 +532,9 @@ public partial class MainWindow : Window
             }
         }
 
-        var settings = new AppSettings
-        {
-            OpenNotes = windowsToClose
-                .Select(window => window.CaptureState())
-                .Where(state => state is not null)
-                .Cast<NoteWindowState>()
-                .ToList(),
-            SavedNotes = _savedNotes.ToList()
-        };
-
         try
         {
-            await _settingsService.SaveAsync(settings);
+            await _settingsService.SaveAsync(CreateCurrentSettings());
         }
         catch (Exception exception)
         {
@@ -390,6 +547,11 @@ public partial class MainWindow : Window
 
             _isClosing = false;
             return;
+        }
+
+        foreach (var widget in _noteWidgets.ToArray())
+        {
+            widget.Close();
         }
 
         _allowClose = true;
