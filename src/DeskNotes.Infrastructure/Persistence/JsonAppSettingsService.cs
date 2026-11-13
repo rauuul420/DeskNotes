@@ -50,6 +50,7 @@ public sealed class JsonAppSettingsService : IAppSettingsService
 
         settings ??= new AppSettings();
         settings.OpenNotes ??= [];
+        settings.SavedNotes ??= [];
         return settings;
     }
 
