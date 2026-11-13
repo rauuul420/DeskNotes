@@ -29,6 +29,7 @@ public sealed class NoteFileServiceTests
             Assert.NotEqual(default, note.UpdatedAt);
             Assert.NotNull(note.SourceLastWriteTimeUtc);
             Assert.NotNull(note.SourceLength);
+            Assert.NotNull(note.SourceSha256);
         }
         finally
         {
@@ -85,6 +86,38 @@ public sealed class NoteFileServiceTests
             Assert.Equal(
                 "Contenido modificado desde otra aplicación",
                 await File.ReadAllTextAsync(path));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+
+    [Fact]
+    public async Task SaveAsync_DetectsExternalChangeEvenWhenLengthAndTimestampAreUnchanged()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var path = Path.Combine(directory, "note.txt");
+            await File.WriteAllTextAsync(path, "Contenido original");
+
+            var note = await _service.OpenAsync(path);
+            var originalTimestamp = File.GetLastWriteTimeUtc(path);
+            var originalLength = new FileInfo(path).Length;
+
+            note.Content = "Cambios desde DeskNotes";
+            await File.WriteAllTextAsync(path, "Texto alternativo!");
+
+            Assert.Equal(originalLength, new FileInfo(path).Length);
+            File.SetLastWriteTimeUtc(path, originalTimestamp);
+
+            await Assert.ThrowsAsync<IOException>(
+                () => _service.SaveAsync(note, path));
+
+            Assert.Equal("Texto alternativo!", await File.ReadAllTextAsync(path));
         }
         finally
         {
