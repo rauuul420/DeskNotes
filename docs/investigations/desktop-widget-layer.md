@@ -130,7 +130,9 @@ Solo después de aprobar los tres prototipos anteriores. Mantener el modo standa
 - [Window Features — Z-order and layered windows](https://learn.microsoft.com/en-us/windows/win32/winmsg/window-features)
 - [UpdateLayeredWindow](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-updatelayeredwindow)
 - [WPF and Win32 interoperation](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/wpf-and-win32-interoperation)
-- [HwndSourceParameters.UsesPerPixelOpacity](https://learn.microsoft.com/en-us/dotnet/api/system.windows.interop.hwndsourceparameters.usesperpixelopacity?view=windowsdesktop-10.0)
+- [HwndSourceParameters (.NET Desktop 10 API)](https://learn.microsoft.com/en-us/dotnet/api/system.windows.interop.hwndsourceparameters?view=windowsdesktop-10.0)
+- [HwndSource (.NET Desktop 10 API)](https://learn.microsoft.com/en-us/dotnet/api/system.windows.interop.hwndsource?view=windowsdesktop-10.0)
+- [WPF HwndSourceParameters source](https://github.com/dotnet/wpf/blob/main/src/Microsoft.DotNet.Wpf/src/PresentationCore/System/Windows/InterOp/HwndSourceParameters.cs)
 
 ### Código fuente externo inspeccionado
 - [Ivy Windows Wallpaper — DesktopInterop.cs](https://github.com/Ivy-Interactive/Ivy-Windows-Wallpaper/blob/main/src/Ivy.Windows.Wallpaper/DesktopInterop.cs)
