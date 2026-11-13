@@ -156,7 +156,7 @@ internal sealed class DesktopLayerService : IDisposable
         int idObject, int idChild, uint threadId, uint eventTime)
     {
         if (_disposed) return;
-        _ = _dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(RefreshDesktopState));
+        _ = _dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => RefreshDesktopState()));
     }
 
     private void RefreshDesktopState(bool force = false)
