@@ -23,7 +23,7 @@ public partial class MainWindow : Window
     private readonly IAppSettingsService _settingsService = new JsonAppSettingsService();
     private readonly List<NoteWindow> _noteWindows = [];
     private readonly List<NoteWidgetWindow> _noteWidgets = [];
-    private readonly DesktopLayerService _desktopLayerService = new();
+    private readonly DesktopLayerService _desktopLayerService;
     private readonly ObservableCollection<SavedNote> _savedNotes = [];
     private readonly DispatcherTimer _settingsSaveTimer;
     private bool _isRestoring;
@@ -36,6 +36,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _desktopLayerService = new DesktopLayerService(Dispatcher);
         _noteSaveService = new NoteSaveService(_noteFileService);
         SavedNotesList.ItemsSource = _savedNotes;
         _savedNotes.CollectionChanged += (_, _) =>
@@ -704,6 +705,7 @@ public partial class MainWindow : Window
             widget.Close();
         }
 
+        _desktopLayerService.Dispose();
         _allowClose = true;
         Close();
     }
