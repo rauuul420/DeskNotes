@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using DeskNotes.Core.Interfaces;
 using DeskNotes.Core.Models;
@@ -17,15 +18,37 @@ public sealed class NoteFileService : INoteFileService
         CancellationToken cancellationToken = default)
     {
         var fullPath = ValidateAndGetFullPath(filePath);
+        var sourceInfo = new FileInfo(fullPath);
 
-        var content = await File.ReadAllTextAsync(fullPath, cancellationToken);
+        if (!sourceInfo.Exists)
+        {
+            throw new FileNotFoundException("The note file could not be found.", fullPath);
+        }
+
+        var lastWriteTimeUtc = sourceInfo.LastWriteTimeUtc;
+        var sourceLength = sourceInfo.Length;
+        var bytes = await File.ReadAllBytesAsync(fullPath, cancellationToken);
+        var content = DecodeText(bytes);
+        var sourceHash = Convert.ToHexString(SHA256.HashData(bytes));
+
+        sourceInfo.Refresh();
+
+        if (!sourceInfo.Exists ||
+            sourceInfo.LastWriteTimeUtc != lastWriteTimeUtc ||
+            sourceInfo.Length != sourceLength)
+        {
+            throw new IOException("The file changed while DeskNotes was opening it. Please open it again.");
+        }
 
         return new Note
         {
             Title = Path.GetFileNameWithoutExtension(fullPath),
             Content = content,
             CreatedAt = File.GetCreationTimeUtc(fullPath),
-            UpdatedAt = File.GetLastWriteTimeUtc(fullPath)
+            UpdatedAt = lastWriteTimeUtc,
+            SourceLastWriteTimeUtc = lastWriteTimeUtc,
+            SourceLength = sourceLength,
+            SourceSha256 = sourceHash
         };
     }
 
@@ -45,15 +68,50 @@ public sealed class NoteFileService : INoteFileService
             directory,
             $".{Path.GetFileName(fullPath)}.{Guid.NewGuid():N}.tmp");
 
+        var contentBytes = Utf8WithoutBom.GetBytes(note.Content);
+
         try
         {
-            await File.WriteAllTextAsync(
+            await File.WriteAllBytesAsync(
                 temporaryPath,
-                note.Content,
-                Utf8WithoutBom,
+                contentBytes,
                 cancellationToken);
 
+            if (note.SourceLastWriteTimeUtc is not null &&
+                note.SourceLength is not null &&
+                note.SourceSha256 is not null)
+            {
+                var currentSource = new FileInfo(fullPath);
+                currentSource.Refresh();
+
+                if (!currentSource.Exists ||
+                    currentSource.LastWriteTimeUtc != note.SourceLastWriteTimeUtc.Value.UtcDateTime ||
+                    currentSource.Length != note.SourceLength.Value)
+                {
+                    throw CreateExternalChangeException();
+                }
+
+                var currentBytes = await File.ReadAllBytesAsync(fullPath, cancellationToken);
+                var currentHash = Convert.ToHexString(SHA256.HashData(currentBytes));
+
+                if (!CryptographicOperations.FixedTimeEquals(
+                    Convert.FromHexString(currentHash),
+                    Convert.FromHexString(note.SourceSha256)))
+                {
+                    throw CreateExternalChangeException();
+                }
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
             File.Move(temporaryPath, fullPath, overwrite: true);
+
+            var savedFile = new FileInfo(fullPath);
+            savedFile.Refresh();
+
+            note.SourceLastWriteTimeUtc = savedFile.LastWriteTimeUtc;
+            note.SourceLength = contentBytes.Length;
+            note.SourceSha256 = Convert.ToHexString(SHA256.HashData(contentBytes));
+            note.UpdatedAt = DateTimeOffset.UtcNow;
         }
         finally
         {
@@ -63,6 +121,28 @@ public sealed class NoteFileService : INoteFileService
             }
         }
     }
+
+    private static string DecodeText(byte[] bytes)
+    {
+        using var stream = new MemoryStream(bytes);
+        using var reader = new StreamReader(
+            stream,
+            Encoding.UTF8,
+            detectEncodingFromByteOrderMarks: true);
+
+        var content = reader.ReadToEnd();
+
+        // StreamReader normally consumes a detected preamble. Keep this explicit so
+        // the domain content never starts with a stray BOM character.
+        return content.Length > 0 && content[0] == '\uFEFF'
+            ? content[1..]
+            : content;
+    }
+
+    private static IOException CreateExternalChangeException() =>
+        new(
+            "This file has changed outside DeskNotes. Your edits have not been saved. " +
+            "Reopen the file and review the latest version before trying again.");
 
     private static string ValidateAndGetFullPath(string filePath)
     {

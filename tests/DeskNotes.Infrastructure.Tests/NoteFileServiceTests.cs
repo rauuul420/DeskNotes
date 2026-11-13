@@ -27,6 +27,9 @@ public sealed class NoteFileServiceTests
             Assert.NotEqual(Guid.Empty, note.Id);
             Assert.NotEqual(default, note.CreatedAt);
             Assert.NotEqual(default, note.UpdatedAt);
+            Assert.NotNull(note.SourceLastWriteTimeUtc);
+            Assert.NotNull(note.SourceLength);
+            Assert.NotNull(note.SourceSha256);
         }
         finally
         {
@@ -53,6 +56,68 @@ public sealed class NoteFileServiceTests
                          bytes[0] == 0xEF &&
                          bytes[1] == 0xBB &&
                          bytes[2] == 0xBF);
+            Assert.NotNull(note.SourceLastWriteTimeUtc);
+            Assert.Equal((long)bytes.Length, note.SourceLength!.Value);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SaveAsync_DoesNotOverwriteFileChangedOutsideDeskNotes()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var path = Path.Combine(directory, "note.txt");
+            await File.WriteAllTextAsync(path, "Contenido original");
+
+            var note = await _service.OpenAsync(path);
+            note.Content = "Cambios realizados en DeskNotes";
+
+            await File.WriteAllTextAsync(path, "Contenido modificado desde otra aplicación");
+
+            await Assert.ThrowsAsync<IOException>(
+                () => _service.SaveAsync(note, path));
+
+            Assert.Equal(
+                "Contenido modificado desde otra aplicación",
+                await File.ReadAllTextAsync(path));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+
+    [Fact]
+    public async Task SaveAsync_DetectsExternalChangeEvenWhenLengthAndTimestampAreUnchanged()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var path = Path.Combine(directory, "note.txt");
+            await File.WriteAllTextAsync(path, "Contenido original");
+
+            var note = await _service.OpenAsync(path);
+            var originalTimestamp = File.GetLastWriteTimeUtc(path);
+            var originalLength = new FileInfo(path).Length;
+
+            note.Content = "Cambios desde DeskNotes";
+            await File.WriteAllTextAsync(path, "Texto alternativo!");
+
+            Assert.Equal(originalLength, new FileInfo(path).Length);
+            File.SetLastWriteTimeUtc(path, originalTimestamp);
+
+            await Assert.ThrowsAsync<IOException>(
+                () => _service.SaveAsync(note, path));
+
+            Assert.Equal("Texto alternativo!", await File.ReadAllTextAsync(path));
         }
         finally
         {
@@ -91,6 +156,84 @@ public sealed class NoteFileServiceTests
 
             await Assert.ThrowsAsync<NotSupportedException>(
                 () => _service.SaveAsync(note, path));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+
+    [Fact]
+    public async Task OpenAsync_DetectsUtf8BomAndReadsUnicode()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var path = Path.Combine(directory, "unicode.txt");
+            var content = "Español: acción, corazón, pingüino";
+            var bytes = System.Text.Encoding.UTF8.GetPreamble()
+                .Concat(System.Text.Encoding.UTF8.GetBytes(content))
+                .ToArray();
+
+            await File.WriteAllBytesAsync(path, bytes);
+
+            var note = await _service.OpenAsync(path);
+
+            Assert.Equal(content, note.Content);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SaveAsync_AllowsSubsequentSaveAfterOpeningNewFile()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var path = Path.Combine(directory, "note.md");
+            var newNote = new Note { Content = "Primera versión" };
+
+            await _service.SaveAsync(newNote, path);
+
+            var openedNote = await _service.OpenAsync(path);
+            openedNote.Content = "Segunda versión";
+
+            await _service.SaveAsync(openedNote, path);
+
+            Assert.Equal("Segunda versión", await File.ReadAllTextAsync(path));
+            Assert.NotNull(openedNote.SourceSha256);
+            Assert.Equal((long)new System.IO.FileInfo(path).Length, openedNote.SourceLength!.Value);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SaveAsync_DoesNotRecreateSourceFileDeletedOutsideDeskNotes()
+    {
+        var directory = CreateTemporaryDirectory();
+
+        try
+        {
+            var path = Path.Combine(directory, "note.txt");
+            await File.WriteAllTextAsync(path, "Contenido original");
+
+            var note = await _service.OpenAsync(path);
+            note.Content = "Cambios en DeskNotes";
+            File.Delete(path);
+
+            await Assert.ThrowsAsync<IOException>(
+                () => _service.SaveAsync(note, path));
+
+            Assert.False(File.Exists(path));
         }
         finally
         {

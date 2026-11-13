@@ -50,12 +50,16 @@ DeskNotes/
 │   ├── DeskNotes.App/
 │   │   ├── App.xaml
 │   │   ├── MainWindow.xaml
+│   │   ├── MainWindow.xaml.cs
+│   │   ├── NoteWindow.xaml
+│   │   ├── NoteWindow.xaml.cs
 │   │   └── DeskNotes.App.csproj
 │   ├── DeskNotes.Core/
 │   │   └── DeskNotes.Core.csproj
 │   └── DeskNotes.Infrastructure/
 │       └── DeskNotes.Infrastructure.csproj
-└── tests/                       # Pendiente de crear
+└── tests/
+    └── DeskNotes.Infrastructure.Tests/
 ```
 
 Estructura objetivo progresiva:
@@ -109,7 +113,7 @@ Responsabilidades previstas:
 - Leer y escribir archivos.
 - Resolver operaciones sobre rutas.
 - Gestionar detalles de codificación de texto.
-- Persistir preferencias y estado de ventanas cuando se defina el formato.
+- Persistir preferencias y estado de ventanas mediante JSON en `%LocalAppData%/DeskNotes/settings.json`.
 - Implementar las interfaces declaradas por Core cuando corresponda.
 
 Infrastructure puede depender de Core, pero Core no debe depender de Infrastructure.
@@ -163,9 +167,9 @@ Se distinguirán dos tipos de información:
 1. **Contenido de la nota:** se guarda en el archivo elegido por el usuario.
 2. **Preferencias de la aplicación:** pueden guardarse en almacenamiento local separado, por ejemplo posición y tamaño de ventanas.
 
-La estrategia debe contemplar errores de acceso, codificación, modificaciones externas y guardado seguro. Los detalles se desarrollarán antes de implementar el servicio de archivos.
+El servicio actual lee y escribe TXT/MD como UTF-8, detecta BOM al abrir, escribe sin BOM y utiliza un archivo temporal antes de sustituir el destino. El servicio `JsonAppSettingsService` persiste las rutas de las notas abiertas y sus posiciones, dimensiones y estado `Topmost` en `%LocalAppData%/DeskNotes/settings.json`, usando también un archivo temporal para sustituir la configuración. Al abrir una nota registra fecha, tamaño y hash SHA-256 del contenido; antes de guardar una nota existente compara esos datos para detectar modificaciones externas. Esta comprobación reduce el riesgo de sobrescritura, aunque no elimina por completo una posible carrera si otro proceso modifica el archivo exactamente entre la comprobación y el reemplazo.
 
-La decisión se documenta en [ADR-002](decisions/ADR-002-file-storage.md).
+La decisión de almacenamiento de documentos se documenta en [ADR-002](decisions/ADR-002-file-storage.md). La persistencia de la sesión y las ventanas se documenta en [ADR-003](decisions/ADR-003-window-state-persistence.md).
 
 ## 8. Flujo de dependencias
 
@@ -185,7 +189,7 @@ DeskNotes.Infrastructure.Tests
         └──> DeskNotes.Core
 ```
 
-Los proyectos de pruebas todavía no forman parte de la solución y se añadirán cuando preparemos la infraestructura de testing.
+El proyecto `DeskNotes.Infrastructure.Tests` ya forma parte de la solución y contiene pruebas del servicio de archivos. Las pruebas de Core y de interfaz se añadirán cuando existan reglas y comportamientos que justifiquen cubrirlas.
 
 ## 9. Pruebas
 
@@ -199,7 +203,7 @@ Las pruebas no deben depender de documentos personales ni modificar archivos del
 
 Antes de implementar las funciones correspondientes habrá que concretar:
 
-- Formato de configuración local y ubicación de los datos de la aplicación.
+- Versionado del esquema de configuración local y estrategia de migración.
 - Estrategia de detección de cambios externos.
 - Política de codificaciones y conservación de finales de línea.
 - Estrategia de guardado seguro y recuperación ante errores.
