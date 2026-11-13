@@ -41,6 +41,11 @@ El MVP debe proporcionar un flujo completo y fiable para crear, abrir, editar y 
 | FR-011 | La aplicación debe informar al usuario cuando una operación de archivo no pueda completarse. | Obligatoria |
 | FR-012 | La aplicación debe mantener una biblioteca persistente de archivos guardados, independiente de las ventanas abiertas. | Obligatoria |
 | FR-013 | El usuario debe poder volver a abrir un archivo desde la biblioteca o quitar su entrada sin borrar el archivo original. | Obligatoria |
+| FR-014 | El usuario debe poder crear un widget flotante para una nota guardada que muestre su título y contenido. | Alta |
+| FR-015 | El widget debe poder moverse, redimensionarse, cerrarse y abrir la nota en el editor. | Alta |
+| FR-016 | El usuario debe poder elegir si el widget permanece encima de otras ventanas. | Alta |
+| FR-017 | La aplicación debe recordar y restaurar los widgets activos, su tamaño y su posición. | Alta |
+| FR-018 | El contenido del widget debe actualizarse después de guardar la nota correspondiente. | Alta |
 
 ### 3.2 Comportamientos que deben definirse durante la implementación
 
@@ -99,7 +104,7 @@ Las siguientes funciones no son necesarias para publicar la primera versión fun
 - Sincronización entre dispositivos.
 - Sistema de complementos.
 - Instalador y actualizaciones automáticas.
-- Integración de notas directamente en la capa del escritorio detrás de los iconos.
+- Integración de notas directamente en la capa del escritorio detrás de los iconos de Windows (los widgets flotantes estándar sí forman parte de la evolución actual).
 
 Estas funciones se valorarán en la hoja de ruta y no deben retrasar el MVP.
 
@@ -121,6 +126,10 @@ El MVP podrá considerarse funcional cuando se compruebe que:
 12. Quitar una entrada de «Mis notas» no elimina el archivo original.
 13. Los errores de acceso a archivos se comunican sin provocar un cierre inesperado.
 14. Los cambios no guardados no se descartan sin una decisión explícita del usuario.
+15. Se puede crear un widget desde una nota guardada y ver su título y contenido.
+16. El widget se puede mover y redimensionar y ofrece acceso para abrir la nota en el editor.
+17. El widget se puede configurar para permanecer encima de otras ventanas.
+18. Al cerrar y volver a iniciar DeskNotes, se restauran los widgets con su posición y tamaño.
 
 ## 8. Suposiciones y decisiones pendientes
 
