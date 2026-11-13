@@ -1,0 +1,119 @@
+name: Publish DeskNotes release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.404
+
+      - name: Install NSIS
+        run: choco install nsis --yes --no-progress
+
+      - name: Resolve release version
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          if ($tag -notmatch '^v(?<version>[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?)$') {
+            throw "Formato de tag no válido: $tag. Usa vMAJOR.MINOR.PATCH o vMAJOR.MINOR.PATCH-alpha."
+          }
+
+          $appVersion = $Matches.version
+          $fileVersion = ($appVersion -split '-')[0]
+          $versionNumber = "$fileVersion.0"
+
+          "APP_VERSION=$appVersion" >> $env:GITHUB_ENV
+          "APP_FILE_VERSION=$fileVersion" >> $env:GITHUB_ENV
+          "APP_VERSION_NUM=$versionNumber" >> $env:GITHUB_ENV
+
+      - name: Restore
+        run: dotnet restore DeskNotes.slnx
+
+      - name: Build Release
+        run: dotnet build DeskNotes.slnx --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test DeskNotes.slnx --configuration Release --no-build --verbosity normal
+
+      - name: Publish single-file application (framework-dependent)
+        shell: pwsh
+        run: ./packaging/publish.ps1 -Version $env:APP_VERSION
+
+      - name: Build NSIS installer
+        shell: pwsh
+        run: |
+          $outputDir = Join-Path $PWD "artifacts/installer"
+          $publishDir = Join-Path $PWD "artifacts/publish"
+          $nsisPath = Join-Path ${env:ProgramFiles(x86)} "NSIS/makensis.exe"
+
+          New-Item -ItemType Directory -Force $outputDir | Out-Null
+
+          if (-not (Test-Path $nsisPath)) {
+            throw "No se ha encontrado makensis.exe en: $nsisPath"
+          }
+
+          $nsisArgs = @(
+            "/DAPP_VERSION=$env:APP_VERSION",
+            "/DAPP_VERSION_NUM=$env:APP_VERSION_NUM",
+            "/DAPP_FILE_VERSION=$env:APP_FILE_VERSION",
+            "/DPUBLISH_DIR=$publishDir",
+            "/DOUTPUT_DIR=$outputDir",
+            "packaging/nsis/DeskNotes.nsi"
+          )
+
+          & $nsisPath @nsisArgs
+          if ($LASTEXITCODE -ne 0) {
+            throw "NSIS ha fallado con exit code $LASTEXITCODE."
+          }
+
+      - name: Create GitHub Release and upload installer
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $installerPath = Join-Path $PWD "artifacts/installer/DeskNotes-Setup-$env:APP_FILE_VERSION.exe"
+          if (-not (Test-Path $installerPath)) {
+            throw "No se ha encontrado el instalador: $installerPath"
+          }
+
+          $notes = @"
+          DeskNotes $env:APP_VERSION — versión preliminar para Windows x64.
+
+          Requisitos:
+          - Windows de 64 bits.
+          - Microsoft .NET 10 Desktop Runtime x64 instalado previamente.
+
+          El instalador no incluye ni descarga automáticamente .NET. Si el runtime no está presente, ofrece abrir la página oficial de descarga.
+          "@
+
+          $ghArgs = @(
+            "release", "create",
+            $env:GITHUB_REF_NAME,
+            $installerPath,
+            "--title", "DeskNotes $env:APP_VERSION",
+            "--notes", $notes,
+            "--verify-tag"
+          )
+
+          if ($env:APP_VERSION.Contains("-")) {
+            $ghArgs += "--prerelease"
+          }
+
+          & gh @ghArgs
+          if ($LASTEXITCODE -ne 0) {
+            throw "No se ha podido crear la GitHub Release o subir el instalador."
+          }
