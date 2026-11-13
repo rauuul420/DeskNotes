@@ -14,7 +14,7 @@ internal sealed class DesktopLayerService
 {
     private const uint DesktopWorkerMessage = 0x052C;
     private const uint SendMessageTimeoutFlags = 0x0002;
-    private const uint WindowPositionFlags = 0x0010 | 0x0004 | 0x0040;
+    private const uint WindowPositionFlags = 0x0010 | 0x0020 | 0x0040;
     private const int GwlStyle = -16;
     private const int GwlExStyle = -20;
     private const long WsChild = 0x40000000L;
@@ -71,6 +71,12 @@ internal sealed class DesktopLayerService
 
             var progmanExStyle = GetWindowLongPtr(progman, GwlExStyle).ToInt64();
             var isModernDesktop = (progmanExStyle & WsExNoRedirectionBitmap) != 0;
+            if (isModernDesktop && GetParent(shellView) != progman)
+            {
+                error = "La vista de iconos no pertenece al contenedor Progman esperado en esta composición.";
+                return false;
+            }
+
             var parent = isModernDesktop
                 ? progman
                 : FindLegacyWallpaperWorker(progman, shellView);
@@ -225,7 +231,13 @@ internal sealed class DesktopLayerService
     private static IntPtr FindLegacyWallpaperWorker(IntPtr progman, IntPtr shellView)
     {
         // Some Windows 11 desktop builds expose WorkerW as a child of Progman.
-        var childWorker = FindWindowEx(progman, IntPtr.Zero, "WorkerW", null);
+        var childWorker = FindWindowEx(progman, shellView, "WorkerW", null);
+        if (childWorker != IntPtr.Zero)
+        {
+            return childWorker;
+        }
+
+        childWorker = FindWindowEx(progman, IntPtr.Zero, "WorkerW", null);
         if (childWorker != IntPtr.Zero)
         {
             return childWorker;
