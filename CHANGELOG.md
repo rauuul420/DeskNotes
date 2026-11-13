@@ -19,6 +19,7 @@ Los cambios relevantes de DeskNotes se registrarán aquí. El formato sigue una 
 - Detección de modificaciones externas mediante metadatos y hash SHA-256.
 - Pruebas de almacenamiento y conflicto de modificación externa.
 - Integración continua para restaurar, compilar y ejecutar pruebas en Windows.
+- En desarrollo: persistencia JSON de las notas abiertas, posiciones, dimensiones y estado «Siempre visible».
 
 ### Nota de estado
 Estas funcionalidades están en una rama de desarrollo. La compilación Release y las 10 pruebas automatizadas pasan en GitHub Actions sobre Windows; la comprobación manual de la interfaz sigue pendiente. Todavía no forman parte de una versión publicada.
